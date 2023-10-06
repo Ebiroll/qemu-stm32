@@ -1,6 +1,7 @@
 arm_ss = ss.source_set()
 arm_ss.add(files('boot.c'), fdt)
 arm_ss.add(files('stm32/stm32fxxx_rcc.c'))
+arm_ss.add(files('stm32/stm32f2xx_rtc.c'))
 arm_ss.add(files('stm32/stm32fxxx_clktree.c'))
 arm_ss.add(when: 'CONFIG_ARM_VIRT', if_true: files('virt.c'))
 arm_ss.add(when: 'CONFIG_ACPI', if_true: files('virt-acpi-build.c'))

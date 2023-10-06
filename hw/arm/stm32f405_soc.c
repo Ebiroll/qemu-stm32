@@ -29,6 +29,7 @@
 #include "hw/arm/stm32f405_soc.h"
 #include "hw/qdev-clock.h"
 #include "hw/misc/unimp.h"
+#include "hw/arm/stm32/stm32f2xx_rtc.h"
 
 
 #define SYSCFG_ADD                     0x40013800
@@ -83,6 +84,7 @@ static void stm32f405_soc_initfn(Object *obj)
     object_initialize_child(obj, "exti", &s->exti, TYPE_STM32F4XX_EXTI);
 
     object_initialize_child(obj, "stm32fxxx-rcc", &s->rcc, TYPE_STM32FXXX_RCC);
+    object_initialize_child(obj, "stm32fxxx-rtc", &s->rtc, TYPE_STM32FXXX_RTC);
 
     s->sysclk = qdev_init_clock_in(DEVICE(s), "sysclk", NULL, NULL, 0);
     s->refclk = qdev_init_clock_in(DEVICE(s), "refclk", NULL, NULL, 0);
@@ -242,6 +244,15 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
     busdev = SYS_BUS_DEVICE(dev);
     sysbus_mmio_map(busdev, 0, 0x40023800);
 
+    // 0x40002800
+    /* RCT Device*/
+    dev = DEVICE(&s->rtc);
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->rtc), errp)) {
+        return;
+    }
+    busdev = SYS_BUS_DEVICE(dev);
+    sysbus_mmio_map(busdev, 0, 0x40002800);
+
 
     /* EXTI device */
     dev = DEVICE(&s->exti);
@@ -262,7 +273,7 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
     create_unimplemented_device("timer[6]",    0x40001000, 0x400);
     create_unimplemented_device("timer[13]",   0x40001C00, 0x400);
     create_unimplemented_device("timer[14]",   0x40002000, 0x400);
-    create_unimplemented_device("RTC and BKP", 0x40002800, 0x400);
+    //create_unimplemented_device("RTC and BKP", 0x40002800, 0x400);
     create_unimplemented_device("WWDG",        0x40002C00, 0x400);
     create_unimplemented_device("IWDG",        0x40003000, 0x400);
     create_unimplemented_device("I2S2ext",     0x40003000, 0x400);
