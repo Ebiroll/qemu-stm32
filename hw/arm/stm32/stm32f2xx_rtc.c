@@ -541,7 +541,7 @@ f2xx_wu_timer(void *arg)
 {
     STM32F2XXRtcState *s = arg;
 
-    DPRINTF("%s: fired\n", __func__);
+    //DPRINTF("%s: fired\n", __func__);
 
     // Fire the interrupt?
     uint32_t cr = s->regs[R_RTC_CR];

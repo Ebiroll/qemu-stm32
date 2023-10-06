@@ -28,8 +28,24 @@ nc 127.0.0.1 12344
 
 
 # Unimplemeted devices,
-A special binary must be prepared with initailizatio disabled for some devices.
-i.e. RTC and flash
- //MX_RTC_Init();
-In the future, more devices will be implemented. 
+Now it should work, but we need more testing.
+ASIC SPI:s will be added soon.
 
+If you start qemu manually you can use this to launch the debugger
+# launch.json
+        {
+            "name": "Cortex external qemu Debug",
+            "cwd": "${workspaceFolder}",
+            "executable": "./build/raw_V2CubeMX.elf",
+            "gdbPath": "/usr/bin/gdb-multiarch",
+            "request": "attach",
+            "type": "cortex-debug",
+            "runToEntryPoint": "main",
+            "runToMain": true,
+            "showDevDebugOutput": "raw",
+            "servertype": "external",
+            "gdbTarget": "127.0.0.1:1234",
+            "host": "localhost",
+            "interface": "tcp",
+            "port": 2345
+        }
