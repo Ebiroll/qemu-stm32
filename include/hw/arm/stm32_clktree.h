@@ -22,6 +22,8 @@
 #ifndef STM32_CLKTREE_H
 #define STM32_CLKTREE_H
 
+//#include "qemu-common.h"
+#include "compiler.h"
 
 #define CLKTREE_MAX_IRQ 16
 #define CLKTREE_MAX_OUTPUT 24
@@ -79,4 +81,3 @@ void clktree_set_enabled(Clk clk, bool enabled);
 void clktree_set_selected_input(Clk clk, int selected_input);
 
 #endif /* STM32_CLKTREE_H */
-

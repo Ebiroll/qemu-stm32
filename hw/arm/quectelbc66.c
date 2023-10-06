@@ -34,6 +34,8 @@
 #define BC66_SYSCLK_FRQ    78000000ULL
 #define BC66NB_SYSCLK_FRQ 156000000ULL
 
+extern int system_clock_scale;
+
 static void quectelbc66_init(MachineState *machine)
 {
     DeviceState *dev;
@@ -45,9 +47,9 @@ static void quectelbc66_init(MachineState *machine)
     sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
     machine->enable_graphics = false;
 
-    armv7m_load_kernel(ARM_CPU(first_cpu),
-                       machine->kernel_filename,
-                       FLASH_SIZE);
+    //armv7m_load_kernel(ARM_CPU(first_cpu),
+    //                   machine->kernel_filename,
+    //                   FLASH_SIZE);
 }
 
 static void quectelbc66nb_init(MachineState *machine)
@@ -61,9 +63,9 @@ static void quectelbc66nb_init(MachineState *machine)
     sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
     machine->enable_graphics = false;
 
-    armv7m_load_kernel(ARM_CPU(first_cpu),
-                       machine->kernel_filename,
-                       FLASH_SIZE);
+    //armv7m_load_kernel(ARM_CPU(first_cpu),
+    //                   machine->kernel_filename,
+    //                   FLASH_SIZE);
 }
 
 static void quectelbc66_machine_init(MachineClass *mc)

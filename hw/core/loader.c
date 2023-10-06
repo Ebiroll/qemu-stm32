@@ -133,7 +133,7 @@ ssize_t load_image_targphys_as(const char *filename,
         fprintf(stderr, "Could not load image\n");
         return -1;
     } else if (size < 0 || size > max_sz) {
-        fprintf(stderr, "Image too large (%d > %lu)\n", size, max_sz);
+        fprintf(stderr, "Image too large (%d > %lu)\n", (int)size, max_sz);
         return -1;
     }
     if (size > 0) {

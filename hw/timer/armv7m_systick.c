@@ -30,7 +30,10 @@
 #define SYSCALIB_SKEW (1U << 30)
 #define SYSCALIB_TENMS ((1U << 24) - 1)
 
-static void systick_set_period_from_clock(SysTickState *s)
+
+int system_clock_scale;
+
+static int systick_set_period_from_clock(SysTickState *s)
 {
     /*
      * Set the ptimer period from whichever clock is selected.
@@ -50,6 +53,7 @@ static void systick_set_period_from_clock(SysTickState *s)
     } else {
         ptimer_set_period_from_clock(s->ptimer, s->refclk, 1);
     }
+    return 0;
 }
 
 static void systick_timer_tick(void *opaque)

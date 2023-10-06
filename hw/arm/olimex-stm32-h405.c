@@ -35,7 +35,7 @@
 /* olimex-stm32-h405 implementation is derived from netduinoplus2 */
 
 /* Main SYSCLK frequency in Hz (168MHz) */
-#define SYSCLK_FRQ 168000000ULL
+#define SYSCLK_FRQ 84000000ULL
 
 static void olimex_stm32_h405_init(MachineState *machine)
 {
@@ -50,6 +50,16 @@ static void olimex_stm32_h405_init(MachineState *machine)
     qdev_prop_set_string(dev, "cpu-type", ARM_CPU_TYPE_NAME("cortex-m4"));
     qdev_connect_clock_in(dev, "sysclk", sysclk);
     sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
+
+    //DeviceState *rcc = qdev_new("stm32fxxx-rcc");
+    //qdev_prop_set_uint32(rcc, "osc_freq", 84000000);
+    //qdev_prop_set_uint32(rcc, "osc32_freq", 32000);
+    //sysbus_realize_and_unref(SYS_BUS_DEVICE(rcc), &error_fatal);
+    // object_property_add_child(obj, "rcc", OBJECT(rcc), NULL);
+    //s->rcc = SYS_BUS_DEVICE(rcc);
+
+
+    
 
     armv7m_load_kernel(ARM_CPU(first_cpu),
                        machine->kernel_filename,

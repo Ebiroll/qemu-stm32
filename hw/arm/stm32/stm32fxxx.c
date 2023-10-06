@@ -30,6 +30,7 @@
 #include "exec/address-spaces.h"
 #include "hw/arm/arm.h"
 #include "hw/arm/armv7m.h"
+#include "hw/or-irq.h"
 #include "cpu.h"
 
 #define FLASH_BASE_ADDRESS 0x08000000
@@ -45,6 +46,7 @@
 #include "hw/arm/arm.h"
 #include "hw/arm/armv7m.h"
 #include "hw/arm/stm32fxxx.h"
+#include "hw/arm/stm32/stm32fxxx_rcc.h"
 
 //#define STM32F429_439xx
 //#include "stm32f4xx.h"
@@ -74,7 +76,8 @@ struct stm32f4xx_soc {
     SysBusDevice *dwt;
     SysBusDevice *gpio[STM32FXXX_NUM_GPIOS];
 
-    qemu_or_irq *adc_irqs;
+    //qemu_or_irq *adc_irqs;
+    qemu_irq*adc_irqs;
 
     char *cpu_type;
     MemoryRegion mmio;

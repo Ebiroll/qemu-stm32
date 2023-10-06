@@ -23,17 +23,23 @@
 
 #include "qemu/osdep.h"
 #include "qapi/error.h"
-#include "qemu-common.h"
 #include "cpu.h"
 
 #include "qemu/timer.h"
 #include <stdio.h>
 
 #include "hw/sysbus.h"
+#include "hw/hw.h"
+#include "hw/irq.h"
 #include "stm32fxxx_clktree.h"
 #include "stm32fxxx_rcc.h"
 #include "qemu/log.h"
-#include "hw/arm/arm.h"
+//#include "hw/arm/armv7m.h"
+#include "migration/vmstate.h"
+#include "hw/qdev-properties.h"
+
+
+extern int system_clock_scale;
 
 /* DEFINITIONS*/
 
@@ -59,7 +65,12 @@ do { printf("STM32F2XX_RCC: " fmt , ## __VA_ARGS__); } while (0)
 
 #define HSI_FREQ 16000000
 #define LSI_FREQ 32000
-
+/*
+#define RCC_FLAG_HSIRDY                  ((uint8_t)0x21)
+#define RCC_FLAG_HSERDY                  ((uint8_t)0x31)
+#define RCC_FLAG_PLLRDY                  ((uint8_t)0x39)
+#define RCC_FLAG_PLLI2SRDY               ((uint8_t)0x3B)
+*/
 #define RCC_CR_RESET_VALUE      0x00000083
 #define RCC_CR_OFFSET           0x00
 #define RCC_CR_PLLI2SRDY_BIT    27
@@ -328,86 +339,12 @@ void stm32_hw_warn(const char *fmt, ...)
 #define stm32_unimp(x...) qemu_log_mask(LOG_UNIMP, x)
 
 
-enum {
-    STM32_PERIPH_UNDEFINED = -1,
-    STM32_RCC_PERIPH = 0,
-    STM32_GPIOA,
-    STM32_GPIOB,
-    STM32_GPIOC,
-    STM32_GPIOD,
-    STM32_GPIOE,
-    STM32_GPIOF,
-    STM32_GPIOG,
-    STM32_GPIOH,
-    STM32_GPIOI,
-    STM32_GPIOJ,
-    STM32_GPIOK,
-    STM32_SYSCFG,
-    STM32_AFIO_PERIPH,
-    STM32_UART1,
-    STM32_UART2,
-    STM32_UART3,
-    STM32_UART4,
-    STM32_UART5,
-    STM32_UART6,
-    STM32_UART7,
-    STM32_UART8,
-    STM32_ADC1,
-    STM32_ADC2,
-    STM32_ADC3,
-    STM32_DAC,
-    STM32_TIM1,
-    STM32_TIM2,
-    STM32_TIM3,
-    STM32_TIM4,
-    STM32_TIM5,
-    STM32_TIM6,
-    STM32_TIM7,
-    STM32_TIM8,
-    STM32_TIM9,
-    STM32_TIM10,
-    STM32_TIM11,
-    STM32_TIM12,
-    STM32_TIM13,
-    STM32_TIM14,
-    STM32_BKP,
-    STM32_PWR,
-    STM32_I2C1,
-    STM32_I2C2,
-    STM32_I2C3,
-    STM32_I2C4,
-    STM32_I2S2,
-    STM32_I2S3,
-    STM32_WWDG,
-    STM32_CAN1,
-    STM32_CAN2,
-    STM32_CAN,
-    STM32_USB,
-    STM32_SPI1,
-    STM32_SPI2,
-    STM32_SPI3,
-    STM32_EXTI_PERIPH,
-    STM32_SDIO,
-    STM32_FSMC,
-    STM32_RTC,
-    STM32_CRC,
-    STM32_DMA1,
-    STM32_DMA2,
-    STM32_DCMI_PERIPH,
-    STM32_CRYP_PERIPH,
-    STM32_HASH_PERIPH,
-    STM32_RNG_PERIPH,
-    STM32_QSPI,
-    STM32_LPTIM1,
-
-    STM32_PERIPH_COUNT,
-};
-
-
+#define stm32f1xx_rcc STM32FXXXRccState
+#if 0
 struct stm32f1xx_rcc {
     /* Inherited */
     union {
-        struct Stm32Rcc inherited;
+        struct STM32FXXXRccState inherited;
         struct {
             /* Inherited */
             SysBusDevice busdev;
@@ -423,59 +360,10 @@ struct stm32f1xx_rcc {
     };
     
     /* Peripheral clocks */
-    Clk PERIPHCLK[STM32_PERIPH_COUNT], // MUST be first field after `inherited`, because Stm32Rcc's last field aliases this array
-    HSICLK,
-    HSECLK,
-    LSECLK,
-    LSICLK,
-    SYSCLK,
-    IWDGCLK,
-    RTCCLK,
+    Clk PERIPHCLK[STM32_PERIPH_COUNT]; // MUST be first field after `inherited`, because Stm32Rcc's last field aliases this array
 
-    PLLM, /* Applies "M" division and "N" multiplication factors for PLL */
-    PLLCLK,
-    PLL48CLK,
-
-    PLLI2SM, /* Applies "M" division and "N" multiplication factors for PLLI2S */
-    PLLI2SCLK,
-    
-    HCLK, /* Output from AHB Prescaler */
-    PCLK1, /* Output from APB1 Prescaler */
-    PCLK2; /* Output from APB2 Prescaler */
-
-    /* Register Values */
-    uint32_t
-    RCC_CIR,
-    RCC_APB1ENR,
-    RCC_APB2ENR;
-
-    /* Register Field Values */
-    uint32_t
-    RCC_CFGR_PPRE1,
-    RCC_CFGR_PPRE2,
-    RCC_CFGR_HPRE,
-    RCC_AHB1ENR,
-    RCC_AHB2ENR,
-    RCC_AHB3ENR,
-    RCC_CFGR_SW,
-    RCC_PLLCFGR,
-    RCC_PLLI2SCFGR;
-
-    uint8_t
-    RCC_PLLCFGR_PLLM,
-    RCC_PLLCFGR_PLLP,
-    RCC_PLLCFGR_PLLSRC;
-
-    uint16_t
-    RCC_PLLCFGR_PLLN;
-
-    uint8_t
-    RCC_PLLI2SCFGR_PLLR,
-    RCC_PLLI2SCFGR_PLLQ;
-
-    uint16_t
-    RCC_PLLI2SCFGR_PLLN;
 };
+#endif
 
 /* HELPER FUNCTIONS */
 struct Clk {                                                                    
@@ -522,7 +410,7 @@ static void stm32_rcc_periph_enable(
 static uint32_t stm32_rcc_RCC_CR_read(struct stm32f1xx_rcc *s)
 {
     /* Get the status of the clocks. */
-    const bool PLLON = true; //clktree_is_enabled(s->PLLCLK);
+    const bool PLLON = clktree_is_enabled(s->PLLCLK);
     const bool HSEON = true; //clktree_is_enabled(s->HSECLK);
     const bool HSION = true; //clktree_is_enabled(s->HSICLK);
     const bool PLLI2SON = true; //clktree_is_enabled(s->PLLI2SCLK);
@@ -553,6 +441,9 @@ static uint32_t stm32_rcc_RCC_CR_read(struct stm32f1xx_rcc *s)
 static void stm32_rcc_RCC_CR_write(struct stm32f1xx_rcc *s, uint32_t new_value, bool init)
 {
     bool new_PLLON, new_HSEON, new_HSION, new_PLLI2SON;
+    DPRINTF("RCC_CR_write %lu \n",
+            (unsigned long)new_value);
+
 
     new_PLLON = IS_BIT_SET(new_value, RCC_CR_PLLON_BIT);
     if((clktree_is_enabled(s->PLLCLK) && !new_PLLON) &&
@@ -560,6 +451,10 @@ static void stm32_rcc_RCC_CR_write(struct stm32f1xx_rcc *s, uint32_t new_value, 
         printf("PLL cannot be disabled while it is selected as the system clock.");
     }
     clktree_set_enabled(s->PLLCLK, new_PLLON);
+
+    DPRINTF("PLL On %lu \n",
+            (unsigned long)new_PLLON);
+
 
     new_HSEON = IS_BIT_SET(new_value, RCC_CR_HSEON_BIT);
     if((clktree_is_enabled(s->HSECLK) && !new_HSEON) &&
@@ -1268,10 +1163,10 @@ static void stm32_rcc_init_clk(struct stm32f1xx_rcc *s)
 
 
 static void stm32f1xx_rcc_realize(DeviceState *dev, Error **errp) {
-    struct stm32f1xx_rcc *s = OBJECT_CHECK(struct stm32f1xx_rcc, dev, "stm32f1xx_rcc");
+    struct stm32f1xx_rcc *s = OBJECT_CHECK(struct stm32f1xx_rcc, dev, "stm32fxxx-rcc");
     SysBusDevice *busdev = SYS_BUS_DEVICE(dev);
     memory_region_init_io(&s->iomem, OBJECT(s), &stm32_rcc_ops, s,
-                          "rcc", 0x40023BFF - 0x40023800 + 1);
+                          "my_rcc", 0x40023BFF - 0x40023800 + 1);
 
     sysbus_init_mmio(busdev, &s->iomem);
 
@@ -1287,18 +1182,20 @@ static Property stm32_rcc_properties[] = {
     DEFINE_PROP_END_OF_LIST()
 };
 
+// TypeInfo
+
 
 static void stm32_rcc_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
 
     dc->reset = stm32_rcc_reset;
-    dc->props = stm32_rcc_properties;
+    device_class_set_props(dc,stm32_rcc_properties);
     dc->realize = stm32f1xx_rcc_realize;
 }
 
 static TypeInfo stm32_rcc_info = {
-    .name  = "stm32f1xx_rcc",
+    .name  = "stm32fxxx-rcc",
     .parent = TYPE_SYS_BUS_DEVICE,
     .instance_size  = sizeof(struct stm32f1xx_rcc),
     .class_init = stm32_rcc_class_init

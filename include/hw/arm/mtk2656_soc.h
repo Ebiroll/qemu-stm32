@@ -34,6 +34,7 @@
 //#include "hw/ssi/stm32f2xx_spi.h"
 #include "hw/arm/armv7m.h"
 #include "qom/object.h"
+#include "hw/or-irq.h"
 
 #define TYPE_MTK2656_SOC "mtk2656-soc"
 OBJECT_DECLARE_SIMPLE_TYPE(MTK2656State, MTK2656_SOC)
@@ -61,7 +62,7 @@ struct MTK2656State {
     STM32F4xxExtiState exti;
     STM32F2XXUsartState usart[STM_NUM_USARTS];
     STM32F2XXTimerState timer[STM_NUM_TIMERS];
-    qemu_or_irq adc_irqs;
+    qemu_irq adc_irqs;
     STM32F2XXADCState adc[STM_NUM_ADCS];
     //STM32F2XXSPIState spi[STM_NUM_SPIS];
 

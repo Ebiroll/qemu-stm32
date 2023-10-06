@@ -30,6 +30,7 @@
 #include "hw/qdev-clock.h"
 #include "hw/misc/unimp.h"
 
+
 #define SYSCFG_ADD                     0x40013800
 static const uint32_t usart_addr[] = { 0x40011000, 0x40004400, 0x40004800,
                                        0x40004C00, 0x40005000, 0x40011400,
@@ -81,6 +82,8 @@ static void stm32f405_soc_initfn(Object *obj)
 
     object_initialize_child(obj, "exti", &s->exti, TYPE_STM32F4XX_EXTI);
 
+    object_initialize_child(obj, "stm32fxxx-rcc", &s->rcc, TYPE_STM32FXXX_RCC);
+
     s->sysclk = qdev_init_clock_in(DEVICE(s), "sysclk", NULL, NULL, 0);
     s->refclk = qdev_init_clock_in(DEVICE(s), "refclk", NULL, NULL, 0);
 }
@@ -108,6 +111,9 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
         error_setg(errp, "sysclk clock must be wired up by the board code");
         return;
     }
+
+
+//create_unimplemented_device("RCC",         0x40023800, 0x400);
 
     /*
      * TODO: ideally we should model the SoC RCC and its ability to
@@ -227,6 +233,15 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
         sysbus_mmio_map(busdev, 0, spi_addr[i]);
         sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(armv7m, spi_irq[i]));
     }
+    // create_unimplemented_device("RCC",         0x40023800, 0x400);
+    /* RCC Device*/
+    dev = DEVICE(&s->rcc);
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->rcc), errp)) {
+        return;
+    }
+    busdev = SYS_BUS_DEVICE(dev);
+    sysbus_mmio_map(busdev, 0, 0x40023800);
+
 
     /* EXTI device */
     dev = DEVICE(&s->exti);
@@ -275,7 +290,7 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
     create_unimplemented_device("GPIOH",       0x40021C00, 0x400);
     create_unimplemented_device("GPIOI",       0x40022000, 0x400);
     create_unimplemented_device("CRC",         0x40023000, 0x400);
-    create_unimplemented_device("RCC",         0x40023800, 0x400);
+    //create_unimplemented_device("RCC",         0x40023800, 0x400);
     create_unimplemented_device("Flash Int",   0x40023C00, 0x400);
     create_unimplemented_device("BKPSRAM",     0x40024000, 0x400);
     create_unimplemented_device("DMA1",        0x40026000, 0x400);

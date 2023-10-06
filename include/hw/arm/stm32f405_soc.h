@@ -34,6 +34,7 @@
 #include "hw/ssi/stm32f2xx_spi.h"
 #include "hw/arm/armv7m.h"
 #include "qom/object.h"
+#include "hw/arm/stm32/stm32fxxx_rcc.h"
 
 #define TYPE_STM32F405_SOC "stm32f405-soc"
 OBJECT_DECLARE_SIMPLE_TYPE(STM32F405State, STM32F405_SOC)
@@ -66,6 +67,8 @@ struct STM32F405State {
     OrIRQState adc_irqs;
     STM32F2XXADCState adc[STM_NUM_ADCS];
     STM32F2XXSPIState spi[STM_NUM_SPIS];
+
+    STM32FXXXRccState rcc;
 
     MemoryRegion ccm;
     MemoryRegion sram;
