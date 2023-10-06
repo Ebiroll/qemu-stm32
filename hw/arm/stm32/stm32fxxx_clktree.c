@@ -24,7 +24,6 @@
 #include "qapi/error.h"
 //#include "qemu-common.h"
 #include "cpu.h"
-
 #include "hw/hw.h"
 #include "hw/irq.h"
 #include "stm32fxxx_clktree.h"
@@ -189,41 +188,6 @@ static Clk clktree_create_generic(
     return clk;
 }
 
-Clk clktree_create_clk(
-                    const char *name,
-                    uint16_t multiplier,
-                    uint16_t divisor,
-                    bool enabled,
-                    uint32_t max_output_freq,
-                    int selected_input,
-                    ...)
-{
-    va_list input_clks;
-    Clk clk, input_clk;
-
-    clk = clktree_create_generic(name, multiplier, divisor, enabled);
-
-    /* Add the input clock connections. */
-    va_start(input_clks, selected_input);
-    while((input_clk = va_arg(input_clks, Clk)) != NULL) {
-        CLKTREE_ADD_LINK(
-                clk->input,
-                clk->input_count,
-                input_clk,
-                CLKTREE_MAX_INPUT);
-
-        CLKTREE_ADD_LINK(
-                input_clk->output,
-                input_clk->output_count,
-                clk,
-                CLKTREE_MAX_OUTPUT);
-    }
-
-    clktree_set_selected_input(clk, selected_input);
-
-    return clk;
-}
-
 
 
 
@@ -267,7 +231,6 @@ Clk clktree_create_src_clk(
     return clk;
 }
 
-#if 0
 Clk clktree_create_clk(
                     const char *name,
                     uint16_t multiplier,
@@ -302,7 +265,6 @@ Clk clktree_create_clk(
 
     return clk;
 }
-#endif
 
 
 void clktree_set_scale(Clk clk, uint16_t multiplier, uint16_t divisor)
