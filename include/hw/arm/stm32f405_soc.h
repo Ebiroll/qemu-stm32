@@ -36,6 +36,7 @@
 #include "qom/object.h"
 #include "hw/arm/stm32/stm32fxxx_rcc.h"
 #include "hw/arm/stm32/stm32f2xx_rtc.h"
+#include "hw/arm/stm32/stm32fxxx_pwr.h"
 
 #define TYPE_STM32F405_SOC "stm32f405-soc"
 OBJECT_DECLARE_SIMPLE_TYPE(STM32F405State, STM32F405_SOC)
@@ -69,6 +70,7 @@ struct STM32F405State {
     STM32F2XXADCState adc[STM_NUM_ADCS];
     STM32F2XXSPIState spi[STM_NUM_SPIS];
 
+    stm32fxxx_pwr     pwr;
     STM32FXXXRccState rcc;
     STM32F2XXRtcState rtc;
 

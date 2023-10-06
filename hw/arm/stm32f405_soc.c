@@ -85,6 +85,7 @@ static void stm32f405_soc_initfn(Object *obj)
 
     object_initialize_child(obj, "stm32fxxx-rcc", &s->rcc, TYPE_STM32FXXX_RCC);
     object_initialize_child(obj, "stm32fxxx-rtc", &s->rtc, TYPE_STM32FXXX_RTC);
+    object_initialize_child(obj, "stm32fxxx-pwr", &s->pwr, TYPE_STM32FXXX_PWR);
 
     s->sysclk = qdev_init_clock_in(DEVICE(s), "sysclk", NULL, NULL, 0);
     s->refclk = qdev_init_clock_in(DEVICE(s), "refclk", NULL, NULL, 0);
@@ -253,6 +254,14 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
     busdev = SYS_BUS_DEVICE(dev);
     sysbus_mmio_map(busdev, 0, 0x40002800);
 
+    // create_unimplemented_device("PWR",         , 0x400);4
+    dev = DEVICE(&s->pwr);
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->pwr), errp)) {
+        return;
+    }
+    busdev = SYS_BUS_DEVICE(dev);
+    sysbus_mmio_map(busdev, 0, 0x40007000);
+
 
     /* EXTI device */
     dev = DEVICE(&s->exti);
@@ -283,7 +292,7 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
     create_unimplemented_device("I2C3",        0x40005C00, 0x400);
     create_unimplemented_device("CAN1",        0x40006400, 0x400);
     create_unimplemented_device("CAN2",        0x40006800, 0x400);
-    create_unimplemented_device("PWR",         0x40007000, 0x400);
+    //create_unimplemented_device("PWR",         0x40007000, 0x400);
     create_unimplemented_device("DAC",         0x40007400, 0x400);
     create_unimplemented_device("timer[1]",    0x40010000, 0x400);
     create_unimplemented_device("timer[8]",    0x40010400, 0x400);

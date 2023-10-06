@@ -216,6 +216,10 @@ f2xx_rtc_compute_host_to_target_offset(STM32F2XXRtcState *s, int64_t period_ns, 
     return target_time_us - host_time_us;
 }
 
+#define RTC_ISR_INITF_Pos             (6U)                                     
+#define RTC_ISR_INITF_Msk             (0x1UL << RTC_ISR_INITF_Pos)              /*!< 0x00000040 */
+#define RTC_ISR_INITF                 RTC_ISR_INITF_Msk                        
+
 
 static uint64_t
 f2xx_rtc_read(void *arg, hwaddr addr, unsigned int size)
@@ -289,6 +293,14 @@ f2xx_rtc_read(void *arg, hwaddr addr, unsigned int size)
         DPRINTF("%s: addr: %" PRIu64 ", data: %" PRIu64 ", size: %lu\n", __func__, addr,(long unsigned int) r,(long unsigned int) size);
     }
 #endif
+    if (addr==3) {
+        static int times_c=0;
+        if (times_c++>10) {
+            r|=RTC_ISR_INITF;
+        } 
+        // RTC_ISR_INITF
+        // r=0;
+    }
 
     return r;
 }
