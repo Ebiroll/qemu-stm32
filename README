@@ -1,0 +1,35 @@
+
+# QEMU_STM32 README
+===================
+
+QEMU is a generic and open source machine & userspace emulator and
+virtualizer.
+
+This repo started as a clone from here, https://github.com/rurban/qemu-stm32/tree/stm32
+
+
+# To build
+mkdir arm_stm32; cd arm_stm32
+../qemu-stm32/configure --disable-werror --enable-debug --target-list="arm-softmmu"     --extra-cflags=-DSTM32_UART_NO_BAUD_DELAY
+
+
+# To run
+For now we use a hacked version of -machine olimex-stm32-h405
+
+ ./arm-softmmu/qemu-system-arm -rtc base=localtime -machine olimex-stm32-h405  -cpu cortex-m4 -S -s   -kernel airsensor.bin  -serial file:uart1.log -serial tcp::12344,server,nowait -serial tcp::12345,server,nowait  -d unimp,guest_errors
+
+
+arm-none-eabi-gdb build/airsensor_d/firmware/bin/firmware_346.elf  -ex 'target extended-remote 192.168.4.1:2345'
+or
+gdb-multiarch  build/airsensor_d/firmware/bin/firmware_346.elf  -ex 'target extended-remote 192.168.4.1:2345'
+
+# Attach to uart,
+nc 127.0.0.1 12344
+
+
+# Unimplemeted devices,
+A special binary must be prepared with initailizatio disabled for some devices.
+i.e. RTC and flash
+ //MX_RTC_Init();
+In the future, more devices will be implemented. 
+
