@@ -27,9 +27,12 @@
 #include "qapi/error.h"
 #include "hw/boards.h"
 #include "qemu/error-report.h"
-#include "hw/arm/arm.h"
+//#include "hw/arm/arm.h"
 #include "hw/arm/armv7m.h"
 #include "exec/address-spaces.h"
+#include "migration/vmstate.h"
+#include "hw/qdev-properties.h"
+#include "hw/arm/boot.h"
 
 struct stm32f429i_disco {
     DeviceState *soc;
@@ -44,9 +47,9 @@ static void stm32f429i_disco_init(MachineState *machine) {
         exit(1);
     }
 
-    s->soc = qdev_create(NULL, "stm32f4xx-soc");
+    s->soc = qdev_new("stm32f4xx-soc");
     qdev_prop_set_string(s->soc, "cpu-type", ARM_CPU_TYPE_NAME("cortex-m4"));
-    object_property_set_bool(OBJECT(s->soc), true, "realized", &error_fatal);
+    object_property_set_bool(OBJECT(s->soc),  "realized",true, &error_fatal);
 
     // Add the sram
     MemoryRegion *sram = g_new(MemoryRegion, 1);
@@ -55,7 +58,7 @@ static void stm32f429i_disco_init(MachineState *machine) {
     memory_region_add_subregion(get_system_memory(), 0x90000000, sram);
 
     // load kernel
-    armv7m_load_kernel(ARM_CPU(first_cpu), machine->kernel_filename, 2 * 1024 * 1024);
+    armv7m_load_kernel(ARM_CPU(first_cpu), machine->kernel_filename,0, 2 * 1024 * 1024);
 }
 
 static void stm32f429i_disco_machine_init(MachineClass *mc)

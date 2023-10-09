@@ -32,12 +32,33 @@
 #include "hw/arm/stm32f405_soc.h"
 #include "hw/arm/boot.h"
 
-/* olimex-stm32-h405 implementation is derived from netduinoplus2 */
+/*
 
-/* Main SYSCLK frequency in Hz (168MHz) */
+enum spitz_model_e { spitz, akita, borzoi, terrier };
+
+struct SpitzMachineClass {
+    MachineClass parent;
+    enum spitz_model_e model;
+    int arm_id;
+};
+
+struct SpitzMachineState {
+    MachineState parent;
+    PXA2xxState *mpu;
+    DeviceState *mux;
+    DeviceState *lcdtg;
+    DeviceState *ads7846;
+    DeviceState *max1111;
+    DeviceState *scp0;
+    DeviceState *scp1;
+    DeviceState *misc_gpio;
+};
+*/
+
+/* Main SYSCLK frequency in Hz (84MHz) */
 #define SYSCLK_FRQ 84000000ULL
 
-static void olimex_stm32_h405_init(MachineState *machine)
+static void neon_tsmv2_init(MachineState *machine)
 {
     DeviceState *dev;
     Clock *sysclk;
@@ -59,7 +80,7 @@ static void olimex_stm32_h405_init(MachineState *machine)
     //s->rcc = SYS_BUS_DEVICE(rcc);
 
 
-    //bus = qdev_get_child_bus(sms->mux, "ssi2");
+    //bus = qdev_get_child_bus(sms->mux, "spi[*]");
     //sms->max1111 = qdev_new(TYPE_MAX_1111);
     //qdev_prop_set_uint8(sms->max1111, "input1" /* BATT_VOLT */,
     //                    SPITZ_BATTERY_VOLT);
@@ -76,14 +97,14 @@ static void olimex_stm32_h405_init(MachineState *machine)
                        0, FLASH_SIZE);
 }
 
-static void olimex_stm32_h405_machine_init(MachineClass *mc)
+static void neon_tsmv2_machine_init(MachineClass *mc)
 {
-    mc->desc = "Olimex STM32-H405 (Cortex-M4)";
-    mc->init = olimex_stm32_h405_init;
+    mc->desc = "Neonode tsmv2 (Cortex-M4)";
+    mc->init = neon_tsmv2_init;
     mc->default_cpu_type = ARM_CPU_TYPE_NAME("cortex-m4");
 
     /* SRAM pre-allocated as part of the SoC instantiation */
     mc->default_ram_size = 0;
 }
 
-DEFINE_MACHINE("olimex-stm32-h405", olimex_stm32_h405_machine_init)
+DEFINE_MACHINE("tsmv2", neon_tsmv2_machine_init)

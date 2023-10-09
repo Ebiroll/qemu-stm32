@@ -42,6 +42,49 @@
 
 // from
 // f2xx_rtc
+#if 0
+  uint32_t TR;      /*!< RTC time register,                                        Address offset: 0x00 */
+  uint32_t DR;      /*!< RTC date register,                                        Address offset: 0x04 */
+  uint32_t CR;      /*!< RTC control register,                                     Address offset: 0x08 */
+  uint32_t ISR;     /*!< RTC initialization and status register,                   Address offset: 0x0C */
+  uint32_t PRER;    /*!< RTC prescaler register,                                   Address offset: 0x10 */
+  uint32_t WUTR;    /*!< RTC wakeup timer register,                                Address offset: 0x14 */
+  uint32_t CALIBR;  /*!< RTC calibration register,                                 Address offset: 0x18 */
+  uint32_t ALRMAR;  /*!< RTC alarm A register,                                     Address offset: 0x1C */
+  uint32_t ALRMBR;  /*!< RTC alarm B register,                                     Address offset: 0x20 */
+  uint32_t WPR;     /*!< RTC write protection register,                            Address offset: 0x24 */
+  uint32_t SSR;     /*!< RTC sub second register,                                  Address offset: 0x28 */
+  uint32_t SHIFTR;  /*!< RTC shift control register,                               Address offset: 0x2C */
+  uint32_t TSTR;    /*!< RTC time stamp time register,                             Address offset: 0x30 */
+  uint32_t TSDR;    /*!< RTC time stamp date register,                             Address offset: 0x34 */
+  uint32_t TSSSR;   /*!< RTC time-stamp sub second register,                       Address offset: 0x38 */
+  uint32_t CALR;    /*!< RTC calibration register,                                 Address offset: 0x3C */
+  uint32_t TAFCR;   /*!< RTC tamper and alternate function configuration register, Address offset: 0x40 */
+  uint32_t ALRMASSR;/*!< RTC alarm A sub second register,                          Address offset: 0x44 */
+  uint32_t ALRMBSSR;/*!< RTC alarm B sub second register,                          Address offset: 0x48 */
+  uint32_t RESERVED7;    /*!< Reserved, 0x4C                                                                 */
+  uint32_t BKP0R;   /*!< RTC backup register 1,                                    Address offset: 0x50 */
+  uint32_t BKP1R;   /*!< RTC backup register 1,                                    Address offset: 0x54 */
+  uint32_t BKP2R;   /*!< RTC backup register 2,                                    Address offset: 0x58 */
+  uint32_t BKP3R;   /*!< RTC backup register 3,                                    Address offset: 0x5C */
+  uint32_t BKP4R;   /*!< RTC backup register 4,                                    Address offset: 0x60 */
+  uint32_t BKP5R;   /*!< RTC backup register 5,                                    Address offset: 0x64 */
+  uint32_t BKP6R;   /*!< RTC backup register 6,                                    Address offset: 0x68 */
+  uint32_t BKP7R;   /*!< RTC backup register 7,                                    Address offset: 0x6C */
+  uint32_t BKP8R;   /*!< RTC backup register 8,                                    Address offset: 0x70 */
+  uint32_t BKP9R;   /*!< RTC backup register 9,                                    Address offset: 0x74 */
+  uint32_t BKP10R;  /*!< RTC backup register 10,                                   Address offset: 0x78 */
+  uint32_t BKP11R;  /*!< RTC backup register 11,                                   Address offset: 0x7C */
+  uint32_t BKP12R;  /*!< RTC backup register 12,                                   Address offset: 0x80 */
+  uint32_t BKP13R;  /*!< RTC backup register 13,                                   Address offset: 0x84 */
+  uint32_t BKP14R;  /*!< RTC backup register 14,                                   Address offset: 0x88 */
+  uint32_t BKP15R;  /*!< RTC backup register 15,                                   Address offset: 0x8C */
+  uint32_t BKP16R;  /*!< RTC backup register 16,                                   Address offset: 0x90 */
+  uint32_t BKP17R;  /*!< RTC backup register 17,                                   Address offset: 0x94 */
+  uint32_t BKP18R;  /*!< RTC backup register 18,                                   Address offset: 0x98 */
+  uint32_t BKP19R;  /*!< RTC backup register 19,                                   Address offset: 0x9C */
+
+#endif
 // STM32F2XXRtcState
 
 static void f2xx_update_current_date_and_time(void *arg);

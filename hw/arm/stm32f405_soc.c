@@ -30,6 +30,7 @@
 #include "hw/qdev-clock.h"
 #include "hw/misc/unimp.h"
 #include "hw/arm/stm32/stm32f2xx_rtc.h"
+#include "hw/qdev-core.h"
 
 
 #define SYSCFG_ADD                     0x40013800
@@ -80,6 +81,16 @@ static void stm32f405_soc_initfn(Object *obj)
     for (i = 0; i < STM_NUM_SPIS; i++) {
         object_initialize_child(obj, "spi[*]", &s->spi[i], TYPE_STM32F2XX_SPI);
     }
+    #define NAME_SIZE 32
+    char name[NAME_SIZE];
+
+    for (i = 0; i < 5; i++) {
+        snprintf(name, NAME_SIZE, "GPIO%c", 'A' + i);
+        object_initialize_child(obj, name, &s->gpio[i], TYPE_STM32FXXX_GPIO);
+        //qdev_prop_set_uint8(DEVICE(s->gpio[i]), "port_id", i);
+        //qdev_prop_set_ptr(DEVICE(s->gpio[i]), "state", &s->state);
+    }
+
 
     object_initialize_child(obj, "exti", &s->exti, TYPE_STM32F4XX_EXTI);
 
@@ -87,8 +98,26 @@ static void stm32f405_soc_initfn(Object *obj)
     object_initialize_child(obj, "stm32fxxx-rtc", &s->rtc, TYPE_STM32FXXX_RTC);
     object_initialize_child(obj, "stm32fxxx-pwr", &s->pwr, TYPE_STM32FXXX_PWR);
 
+
+
     s->sysclk = qdev_init_clock_in(DEVICE(s), "sysclk", NULL, NULL, 0);
     s->refclk = qdev_init_clock_in(DEVICE(s), "refclk", NULL, NULL, 0);
+}
+
+
+static int gpio_realize_peripheral(ARMv7MState *cpu, stm32fxxx_gpio *dev, hwaddr base, unsigned int irqnr, Error **errp){
+     SysBusDevice *busdev;
+     DeviceState *armv7m;
+
+    //object_property_set_bool(OBJECT(dev), "realized", true,  &error_fatal);
+    if (!sysbus_realize(SYS_BUS_DEVICE(dev), errp)) {
+        return 0;
+    }
+    busdev = SYS_BUS_DEVICE(dev);
+    armv7m = DEVICE(cpu);
+    sysbus_mmio_map(busdev, 0, base);
+    sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(armv7m, irqnr));
+    return 0;
 }
 
 static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
@@ -228,6 +257,14 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
 
     /* SPI devices */
     for (i = 0; i < STM_NUM_SPIS; i++) {
+
+        //snprintf(name, NAME_SIZE, "spi[%d]", i);
+        //s->spi[i] = sysbus_create_child_obj(obj, name, "stm32fxxx-spi");
+        //qdev_prop_set_ptr(DEVICE(s->spi[i]), "regs", &s->state.SPI[i]);
+        //qdev_prop_set_uint8(DEVICE(s->spi[i]), "device_id", i);
+
+
+
         dev = DEVICE(&(s->spi[i]));
         if (!sysbus_realize(SYS_BUS_DEVICE(&s->spi[i]), errp)) {
             return;
@@ -277,6 +314,19 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
         qdev_connect_gpio_out(DEVICE(&s->syscfg), i, qdev_get_gpio_in(dev, i));
     }
 
+    if(gpio_realize_peripheral(&s->armv7m, &s->gpio[0], 0x40020000, 0, errp) < 0) return;
+    if(gpio_realize_peripheral(&s->armv7m, &s->gpio[1], 0x40020400, 0, errp) < 0) return;
+    if(gpio_realize_peripheral(&s->armv7m, &s->gpio[2], 0x40020800, 0, errp) < 0) return;
+    if(gpio_realize_peripheral(&s->armv7m, &s->gpio[3], 0x40020C00, 0, errp) < 0) return;
+    if(gpio_realize_peripheral(&s->armv7m, &s->gpio[4], 0x40021000, 0, errp) < 0) return;
+    //if(stm32_realize_peripheral(&s->armv7m, s->gpio[5], 0x40021400, 0, errp) < 0) return;
+    //if(stm32_realize_peripheral(&s->armv7m, s->gpio[6], 0x40021800, 0, errp) < 0) return;
+    //if(stm32_realize_peripheral(&s->armv7m, s->gpio[7], 0x40021C00, 0, errp) < 0) return;
+    //if(stm32_realize_peripheral(&s->armv7m, s->gpio[8], 0x40022000, 0, errp) < 0) return;
+    //if(stm32_realize_peripheral(&s->armv7m, s->gpio[9], 0x40022400, 0, errp) < 0) return;
+    //if(stm32_realize_peripheral(&s->armv7m, s->gpio[10], 0x40022800, 0, errp) < 0) return;
+
+
     create_unimplemented_device("timer[7]",    0x40001400, 0x400);
     create_unimplemented_device("timer[12]",   0x40001800, 0x400);
     create_unimplemented_device("timer[6]",    0x40001000, 0x400);
@@ -300,11 +350,11 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
     create_unimplemented_device("timer[9]",    0x40014000, 0x400);
     create_unimplemented_device("timer[10]",   0x40014400, 0x400);
     create_unimplemented_device("timer[11]",   0x40014800, 0x400);
-    create_unimplemented_device("GPIOA",       0x40020000, 0x400);
-    create_unimplemented_device("GPIOB",       0x40020400, 0x400);
-    create_unimplemented_device("GPIOC",       0x40020800, 0x400);
-    create_unimplemented_device("GPIOD",       0x40020C00, 0x400);
-    create_unimplemented_device("GPIOE",       0x40021000, 0x400);
+    //create_unimplemented_device("GPIOA",       0x40020000, 0x400);
+    //create_unimplemented_device("GPIOB",       0x40020400, 0x400);
+    //create_unimplemented_device("GPIOC",       0x40020800, 0x400);
+    //create_unimplemented_device("GPIOD",       0x40020C00, 0x400);
+    //create_unimplemented_device("GPIOE",       0x40021000, 0x400);
     create_unimplemented_device("GPIOF",       0x40021400, 0x400);
     create_unimplemented_device("GPIOG",       0x40021800, 0x400);
     create_unimplemented_device("GPIOH",       0x40021C00, 0x400);

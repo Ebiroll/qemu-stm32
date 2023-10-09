@@ -1,5 +1,5 @@
 /*
- * STM32 Microcontroller RCC (Reset and Clock Control) module
+ * STM32 Microcontroller FMC (memory controller) module
  *
  * Copyright (c) 2018 Martin Schröder <mkschreder.uk@gmail.com>
  *
@@ -22,6 +22,7 @@
 #include "hw/sysbus.h"
 #include "chardev/char-fe.h"
 #include "hw/hw.h"
+#include "hw/qdev-properties.h"
 
 #define TYPE_STM32FXXX_FMC "stm32fxxx-fmc"
 
@@ -70,7 +71,7 @@ static Property stm32fxxx_fmc_properties[] = {
 static void stm32fxxx_fmc_class_init(ObjectClass *klass, void *data){
     DeviceClass *dc = DEVICE_CLASS(klass);
     dc->reset = stm32fxxx_fmc_reset;
-    dc->props = stm32fxxx_fmc_properties;
+    dc->props_ = stm32fxxx_fmc_properties;
     dc->realize = stm32fxxx_fmc_realize;
 }
 

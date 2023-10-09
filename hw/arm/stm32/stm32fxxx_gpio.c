@@ -23,23 +23,10 @@
 #include "chardev/char-fe.h"
 #include "hw/hw.h"
 #include "hw/arm/stm32fxxx.h"
+#include "stm32fxxx_gpio.h"
+#include "hw/qdev-core.h"
+#include "hw/qdev-properties.h"
 
-#define TYPE_STM32FXXX_GPIO "stm32fxxx-gpio"
-
-#define GPIO_TRACE(fmt, ...) qemu_log_mask(LOG_TRACE, "stm32fxxx_gpio: " fmt, ##__VA_ARGS__)
-#define GPIO_ERROR(fmt, ...) qemu_log_mask(LOG_TRACE, "stm32fxxx_gpio: ERROR: " fmt, ##__VA_ARGS__)
-
-struct stm32fxxx_gpio {
-    SysBusDevice parent;
-
-    MemoryRegion mmio;
-    qemu_irq irq;
-
-    uint8_t port_id, _port_id;
-
-    struct stm32fxxx_state *state;
-    struct stm32fxxx_gpio_state *regs;
-};
 
 static uint64_t stm32fxxx_gpio_read(void *opaque, hwaddr addr, unsigned int size){
     struct stm32fxxx_gpio *self = (struct stm32fxxx_gpio*)opaque;
@@ -47,16 +34,16 @@ static uint64_t stm32fxxx_gpio_read(void *opaque, hwaddr addr, unsigned int size
         GPIO_ERROR("gpio read of != 4 bytes not implemented\n");
     }
     switch(addr){
-        case 0x00: return self->regs->MODER; break;
-        case 0x04: return self->regs->OTYPER; break;
-        case 0x08: return self->regs->OSPEEDR; break;
-        case 0x0c: return self->regs->PUPDR; break;
-        case 0x10: return self->regs->IDR; break;
-        case 0x14: return self->regs->ODR; break;
-        case 0x18: return self->regs->BSRR; break;
-        case 0x1c: return self->regs->LCKR; break;
-        case 0x20: return self->regs->AFRL; break;
-        case 0x24: return self->regs->AFRH; break;
+        case 0x00: return self->GPIO.MODER; break;
+        case 0x04: return self->GPIO.OTYPER; break;
+        case 0x08: return self->GPIO.OSPEEDR; break;
+        case 0x0c: return self->GPIO.PUPDR; break;
+        case 0x10: return self->GPIO.IDR; break;
+        case 0x14: return self->GPIO.ODR; break;
+        case 0x18: return self->GPIO.BSRR; break;
+        case 0x1c: return self->GPIO.LCKR; break;
+        case 0x20: return self->GPIO.AFRL; break;
+        case 0x24: return self->GPIO.AFRH; break;
         default:  {
             GPIO_ERROR("Unknown offset for gpio register 0x%08x\n", (uint32_t)addr);
         }
@@ -71,11 +58,11 @@ static void stm32fxxx_gpio_write(void *opaque, hwaddr addr, uint64_t val64, unsi
     if(size == 1){
         int bitshift = (addr & 3) * 8;
         addr &= ~3;
-        val = (self->regs->regs[addr] & ~(0xff << bitshift)) | ((val & 0xff) << bitshift);
+        val = (self->GPIO.regs[addr] & ~(0xff << bitshift)) | ((val & 0xff) << bitshift);
     } else if(size == 2) {
         int bitshift = (addr & 3) * 8;
         addr &= ~3;
-        val = (self->regs->regs[addr] & ~(0xffff << bitshift)) | ((val & 0xffff) << bitshift);
+        val = (self->GPIO.regs[addr] & ~(0xffff << bitshift)) | ((val & 0xffff) << bitshift);
     } else if(size == 4) {
         // skip
     } else {
@@ -84,7 +71,8 @@ static void stm32fxxx_gpio_write(void *opaque, hwaddr addr, uint64_t val64, unsi
 
     switch(addr){
         case 0x00: { // MODER
-            uint32_t valx = val ^ self->state->GPIO[self->port_id].MODER;
+        // Was GPIO[self->port_id].MODER OLAS, I dont undetstand.
+            uint32_t valx = val ^ self->GPIO.MODER;
             for(int c = 0; c < 16; c++){
                 if(valx & (3 << (c * 2))) {
                     const char *modestr[] = {
@@ -98,17 +86,17 @@ static void stm32fxxx_gpio_write(void *opaque, hwaddr addr, uint64_t val64, unsi
             }
         } break;
         case 0x04: { // OTYPER
-            uint32_t valx = val ^ self->regs->OTYPER;
+            uint32_t valx = val ^ self->GPIO.OTYPER;
             for(int c = 0; c < 16; c++){
                 if(valx & (1 << c)){
-                    uint8_t outpp = (self->regs->OTYPER >> c) & 1;
+                    uint8_t outpp = (self->GPIO.OTYPER >> c) & 1;
                     GPIO_TRACE("GPIO%c P%c%d: mode set to %s\n", 'A' + self->port_id, 'A' + self->port_id, c, outpp?"PP":"OD");
                 }
             }
-            self->regs->OTYPER = val;
+            self->GPIO.OTYPER = val;
         } break;
         case 0x08: { // OSPEEDR
-            uint32_t valx = val ^ self->state->GPIO[self->port_id].OSPEEDR;
+            uint32_t valx = val ^ self->GPIO.OSPEEDR;
             for(int c = 0; c < 16; c++){
                 if(valx & (3 << (c * 2))) {
                     const char *info[] = {
@@ -120,10 +108,10 @@ static void stm32fxxx_gpio_write(void *opaque, hwaddr addr, uint64_t val64, unsi
                     GPIO_TRACE("GPIO%c P%c%d: speed set to %s\n", 'A' + self->port_id, 'A' + self->port_id, c, info[(val >> (c * 2)) & 3]);
                 }
             }
-            self->regs->OSPEEDR = val;
+            self->GPIO.OSPEEDR = val;
         } break;
         case 0x0c: { // PUPDR
-            uint32_t valx = val ^ self->state->GPIO[self->port_id].PUPDR;
+            uint32_t valx = val ^ self->GPIO.PUPDR;
             for(int c = 0; c < 16; c++){
                 if(valx & (3 << (c * 2))) {
                     const char *info[] = {
@@ -135,19 +123,19 @@ static void stm32fxxx_gpio_write(void *opaque, hwaddr addr, uint64_t val64, unsi
                     GPIO_TRACE("GPIO%c P%c%d: pu/pd set to: %s\n", 'A' + self->port_id, 'A' + self->port_id, c, info[(val >> (c * 2)) & 3]);
                 }
             }
-            self->regs->PUPDR = val;
+            self->GPIO.PUPDR = val;
         } break;
         case 0x10: {
             GPIO_ERROR("attempted to write to input data register\n");
         } break;
         case 0x14: { // ODR
             for(int c = 0; c < 16; c++){
-                uint8_t mode = (self->regs->MODER >> (c * 2)) & 3;
+                uint8_t mode = (self->GPIO.MODER >> (c * 2)) & 3;
                 if(mode != 1) { // if mode not output
                     GPIO_TRACE("GPIO%c P%c%d: writing to ODR has no effect. Pin not configured as output (mode = %d)\n", 'A' + self->port_id, 'A' + self->port_id, c, mode);
                 }
             }
-            self->regs->ODR = val;
+            self->GPIO.ODR = val;
         } break;
         case 0x18: { // BSRR
             for(int c = 0; c < 16; c++){
@@ -156,37 +144,38 @@ static void stm32fxxx_gpio_write(void *opaque, hwaddr addr, uint64_t val64, unsi
                 if(set && reset) {
                     GPIO_ERROR("GPIO%c P%c%d: BS and BR both set\n", 'A' + self->port_id, 'A' + self->port_id, c);
                 } else if(set){
-                    self->regs->ODR |= (1 << c);
+                    self->GPIO.ODR |= (1 << c);
                     //GPIO_TRACE("GPIO%c P%c%d: write value 1\n", 'A' + self->port_id, 'A' + self->port_id, c);
                 } else if(reset) {
-                    self->regs->ODR &= ~(1 << c);
+                    self->GPIO.ODR &= ~(1 << c);
                     //GPIO_TRACE("GPIO%c P%c%d: write value 0\n", 'A' + self->port_id, 'A' + self->port_id, c);
                 } else {
                     //GPIO_ERROR("GPIO%c P%c%d: BSRR: no action taken\n", 'A' + self->port_id, 'A' + self->port_id, c);
                 }
             }
-            self->regs->BSRR = 0;
+            self->GPIO.BSRR = 0;
         } break;
         case 0x1c: {
             GPIO_ERROR("Lock register not implemented\n");
         } break;
         case 0x20: { // AFRL
-            uint32_t valx = val ^ self->state->GPIO[self->port_id].AFRL;
+            // Was self->state->GPIO[self->port_id].AFRL;
+            uint32_t valx = val ^ self->GPIO.AFRL;
             for(int c = 0; c < 8; c++){
                 if(valx & (0xf << (c * 4))) {
                     GPIO_TRACE("GPIO%c P%c%d: connected to AF%d\n", 'A' + self->port_id, 'A' + self->port_id, c, (val >> (c * 4)) & 0xf);
                 }
             }
-            self->regs->AFRL = val;
+            self->GPIO.AFRL = val;
         } break;
         case 0x24: { // AFRR
-            uint32_t valx = val ^ self->state->GPIO[self->port_id].AFRH;
+            uint32_t valx = val ^ self->GPIO.AFRH;
             for(int c = 0; c < 8; c++){
                 if(valx & (0xf << (c * 4))) {
                     GPIO_TRACE("GPIO%c P%c%d: connected to AF%d\n", 'A' + self->port_id, 'A' + self->port_id, c + 8, (val >> (c * 4)) & 0xf);
                 }
             }
-            self->regs->AFRH = val;
+            self->GPIO.AFRH = val;
         } break;
         default: 
             printf("GPIO%c write %08x\n", 'A' + self->port_id, (int)addr);
@@ -208,26 +197,26 @@ static void stm32fxxx_gpio_init(Object *obj){
 
 static void stm32fxxx_gpio_realize(DeviceState *dev, Error **errp){
     struct stm32fxxx_gpio *self = OBJECT_CHECK(struct stm32fxxx_gpio, dev, TYPE_STM32FXXX_GPIO);
-    size_t ngpios = (sizeof(self->state->GPIO) / sizeof(self->state->GPIO[0]));
+    //size_t ngpios = (sizeof(self->GPIO) / sizeof(self->state->GPIO[0]));
     self->port_id = self->_port_id;
-    if(self->port_id > ngpios) {
-        fprintf(stderr, "Wrong id for gpio port. Exceeds number of supported gpio ports in the chip state\n");
-        exit(1);
-    }
-    self->regs = &self->state->GPIO[self->port_id];
+    //if(self->port_id > ngpios) {
+    //    fprintf(stderr, "Wrong id for gpio port. Exceeds number of supported gpio ports in the chip state\n");
+    //    exit(1);
+    //}
+    //self->regs = &self->state->GPIO[self->port_id];
 
-    if(self->port_id == 0) self->regs->MODER = 0xA8000000;
-    else if(self->port_id == 1) self->regs->MODER = 0x280;
-    else self->regs->MODER = 0;
-    self->regs->OTYPER = 0;
-    self->regs->OSPEEDR = (self->port_id == 0)?0x0C000000:((self->port_id == 1)?0xC0:0);
-    self->regs->PUPDR = (self->port_id == 0)?0x64000000:((self->port_id == 1)?0x100:0);
-    self->regs->IDR = 0;
-    self->regs->ODR = 0;
-    self->regs->BSRR = 0;
-    self->regs->LCKR = 0;
-    self->regs->AFRL = 0;
-    self->regs->AFRH = 0;
+    if(self->port_id == 0) self->GPIO.MODER = 0xA8000000;
+    else if(self->port_id == 1) self->GPIO.MODER = 0x280;
+    else self->GPIO.MODER = 0;
+    self->GPIO.OTYPER = 0;
+    self->GPIO.OSPEEDR = (self->port_id == 0)?0x0C000000:((self->port_id == 1)?0xC0:0);
+    self->GPIO.PUPDR = (self->port_id == 0)?0x64000000:((self->port_id == 1)?0x100:0);
+    self->GPIO.IDR = 0;
+    self->GPIO.ODR = 0;
+    self->GPIO.BSRR = 0;
+    self->GPIO.LCKR = 0;
+    self->GPIO.AFRL = 0;
+    self->GPIO.AFRH = 0;
 }
 
 static void stm32fxxx_gpio_reset(DeviceState *dev){
@@ -235,15 +224,15 @@ static void stm32fxxx_gpio_reset(DeviceState *dev){
 }
 
 static Property stm32fxxx_gpio_properties[] = {
-    DEFINE_PROP("state", struct stm32fxxx_gpio, state, qdev_prop_ptr, struct stm32fxxx_state*),
-    DEFINE_PROP_UINT8("port_id", struct stm32fxxx_gpio, _port_id, 0),
+    //DEFINE_PROP("state", struct stm32fxxx_gpio, state, qdev_prop_ptr, struct stm32fxxx_state*),
+    //DEFINE_PROP_UINT8("port_id", struct stm32fxxx_gpio, _port_id, 0),
     DEFINE_PROP_END_OF_LIST()
 };
 
 static void stm32fxxx_gpio_class_init(ObjectClass *klass, void *data){
     DeviceClass *dc = DEVICE_CLASS(klass);
     dc->reset = stm32fxxx_gpio_reset;
-    dc->props = stm32fxxx_gpio_properties;
+    dc->props_ = stm32fxxx_gpio_properties;
     dc->realize = stm32fxxx_gpio_realize;
 }
 

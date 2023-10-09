@@ -25,11 +25,12 @@
 
 #include "qemu/osdep.h"
 #include "qapi/error.h"
-#include "qemu-common.h"
-#include "hw/arm/arm.h"
+//#include "qemu-common.h"
+//#include "hw/arm/arm_"
 #include "exec/address-spaces.h"
-#include "hw/arm/arm.h"
+//#include "hw/arm/arm.h"
 #include "hw/arm/armv7m.h"
+#include "hw/qdev-properties.h"
 #include "hw/or-irq.h"
 #include "cpu.h"
 
@@ -43,13 +44,18 @@
 #include "hw/adc/stm32f2xx_adc.h"
 #include "hw/ssi/stm32f2xx_spi.h"
 #include "hw/or-irq.h"
-#include "hw/arm/arm.h"
 #include "hw/arm/armv7m.h"
 #include "hw/arm/stm32fxxx.h"
 #include "hw/arm/stm32/stm32fxxx_rcc.h"
+#include "sysemu/sysemu.h"
+#include "migration/vmstate.h"
+
 
 //#define STM32F429_439xx
 //#include "stm32f4xx.h"
+#define STM32F40_41xxx
+#include "../stm32f4xx.h"
+// #include "stm32fxxx_spi.h"
 
 #define TYPE_STM32FXXX_SOC "stm32f4xx-soc"
 #define STM32FXXX_SOC(obj) \
@@ -69,7 +75,7 @@ struct stm32f4xx_soc {
     SysBusDevice *usart[STM32FXXX_NUM_UARTS];
     SysBusDevice *tim[STM32FXXX_NUM_TIMERS];
     SysBusDevice *adc[STM32FXXX_NUM_ADCS];
-    SysBusDevice *spi[STM32FXXX_NUM_SPIS];
+    STM32F2XXSPIState spi[STM32FXXX_NUM_SPIS];
     SysBusDevice *rcc;
     SysBusDevice *fmc;
     SysBusDevice *pwr;
@@ -105,7 +111,7 @@ static const MemoryRegionOps _stm32_rogue_mem_ops = {
 static int stm32_realize_peripheral(ARMv7MState *cpu, SysBusDevice *dev, hwaddr base, unsigned int irqnr, Error **errp){
     Error *err = NULL;
 
-    object_property_set_bool(OBJECT(dev), true, "realized", &err);
+    object_property_set_bool(OBJECT(dev), "realized", true,  &error_fatal);
 
     if (err != NULL) {
         error_propagate(errp, err);
@@ -117,6 +123,17 @@ static int stm32_realize_peripheral(ARMv7MState *cpu, SysBusDevice *dev, hwaddr 
 
     return 0;
 }
+/*
+ //   dev = qdev_create(bus, type_name);
+    +    dev = qdev_new(type_name);
+         ... when != dev = expr
+    -    qdev_init_nofail(dev);
+    +    qdev_realize_and_unref(dev, bus, &error_fatal);
+    */
+
+void sysbus_init_child_obj(Object *parent, const char *childname, void *child,
+                           size_t childsize, const char *childtype);
+
 
 static void stm32f4xx_soc_initfn(Object *obj){
     struct stm32f4xx_soc *s = STM32FXXX_SOC(obj);
@@ -129,26 +146,28 @@ static void stm32f4xx_soc_initfn(Object *obj){
     sysbus_init_mmio(SYS_BUS_DEVICE(obj), &s->mmio);
 
     object_initialize(&s->armv7m, sizeof(s->armv7m), TYPE_ARMV7M);
-    qdev_set_parent_bus(DEVICE(&s->armv7m), sysbus_get_default());
+    qdev_set_parent_bus(DEVICE(&s->armv7m), sysbus_get_default(),&error_abort);
 
     s->syscfg = sysbus_create_child_obj(obj, name, "stm32f2xx-syscfg");
 
-    DeviceState *rcc = qdev_create(NULL, "stm32f1xx_rcc");
-    qdev_prop_set_uint32(rcc, "osc_freq", 8000000);
-    qdev_prop_set_uint32(rcc, "osc32_freq", 32000);
-    qdev_init_nofail(rcc);
-    object_property_add_child(obj, "rcc", OBJECT(rcc), NULL);
-    s->rcc = SYS_BUS_DEVICE(rcc);
+    //DeviceState *rcc = qdev_new("stm32fxxx-rcc");
+    //qdev_prop_set_uint32(rcc, "osc_freq", 8000000);
+    //qdev_prop_set_uint32(rcc, "osc32_freq", 32000);
+    //qdev_realize_and_unref(rcc, sysbus_get_default(), &error_fatal);
+    //object_property_add_child(obj, "rcc", OBJECT(rcc));
+    // s->rcc = SYS_BUS_DEVICE(rcc);
+
+    s->rcc = sysbus_create_child_obj(obj, "rcc", "stm32fxxx-rcc");
 
     s->fmc = sysbus_create_child_obj(obj, "fmc", "stm32fxxx-fmc");
     s->pwr = sysbus_create_child_obj(obj, "pwr", "stm32fxxx-pwr");
-    s->dwt = sysbus_create_child_obj(obj, "dwt", "armv7m-dwt");
+    //s->dwt = sysbus_create_child_obj(obj, "dwt", "armv7m-dwt");
 
-    qdev_prop_set_ptr(DEVICE(s->pwr), "state", &s->state);
+    // qdev_prop_set_ptr(DEVICE(s->pwr), "state", &s->state);
 
     for (i = 0; i < STM32FXXX_NUM_UARTS; i++) {
         snprintf(name, NAME_SIZE, "usart[%d]", i);
-        s->usart[i] = sysbus_create_child_obj(obj, name, "stm32f1xx-usart");
+        s->usart[i] = sysbus_create_child_obj(obj, name, "stm32f2xx-usart");
         qdev_prop_set_chr(DEVICE(s->usart[i]), "chardev", serial_hd(i));
     }
 
@@ -157,7 +176,7 @@ static void stm32f4xx_soc_initfn(Object *obj){
         s->tim[i] = sysbus_create_child_obj(obj, name, "stm32f2xx-timer");
     }
 
-    s->adc_irqs = OR_IRQ(object_new(TYPE_OR_IRQ));
+    // s->adc_irqs = OR_IRQ(object_new(TYPE_OR_IRQ));
 
     for (i = 0; i < STM32FXXX_NUM_ADCS; i++) {
         snprintf(name, NAME_SIZE, "adc[%d]", i);
@@ -166,16 +185,20 @@ static void stm32f4xx_soc_initfn(Object *obj){
 
     for (i = 0; i < STM32FXXX_NUM_SPIS; i++) {
         snprintf(name, NAME_SIZE, "spi[%d]", i);
-        s->spi[i] = sysbus_create_child_obj(obj, name, "stm32fxxx-spi");
-        qdev_prop_set_ptr(DEVICE(s->spi[i]), "regs", &s->state.SPI[i]);
-        qdev_prop_set_uint8(DEVICE(s->spi[i]), "device_id", i);
+        object_initialize_child(obj, name, &s->spi[i],"stm32fxxx-spi"); 
+
+        //sysbus_init_child_obj(obj, name, void *child, 
+        //                   size_t childsize, const char *childtype);
+
+        //qdev_prop_set_ptr(DEVICE(s->spi[i]), "regs", &s->state.SPI[i]);
+        qdev_prop_set_uint8(DEVICE(&s->spi[i]), "device_id", i);
     }
 
     for (i = 0; i < STM32FXXX_NUM_GPIOS; i++) {
         snprintf(name, NAME_SIZE, "GPIO%c", 'A' + i);
         s->gpio[i] = sysbus_create_child_obj(obj, name, "stm32fxxx-gpio");
         qdev_prop_set_uint8(DEVICE(s->gpio[i]), "port_id", i);
-        qdev_prop_set_ptr(DEVICE(s->gpio[i]), "state", &s->state);
+        //qdev_prop_set_ptr(DEVICE(s->gpio[i]), "state", &s->state);
     }
 }
 
@@ -211,14 +234,17 @@ static void stm32f4xx_soc_realize(DeviceState *dev_soc, Error **errp) {
 	qdev_prop_set_uint32(armv7m, "num-irq", 96);
     qdev_prop_set_string(armv7m, "cpu-type", s->cpu_type);
     qdev_prop_set_bit(armv7m, "enable-bitband", true);
-    object_property_set_link(OBJECT(&s->armv7m), OBJECT(get_system_memory()),
-                                     "memory", &error_abort);
+    //         object_property_set_link(cpuobj, "memory",
+    //                            OBJECT(&s->cpu_container[i]), &error_abort);
 
-    object_property_set_bool(OBJECT(&s->armv7m), true, "realized", &err);
-    if (err != NULL) {
-        error_propagate(errp, err);
-        return;
-    }
+    object_property_set_link(OBJECT(&s->armv7m), "memory", OBJECT(get_system_memory()),
+                                     &error_abort);
+
+    object_property_set_bool(OBJECT(&s->armv7m), "realized" , true,  &error_fatal);
+    //if (err != NULL) {
+    //    error_propagate(errp, err);
+    //    return;
+    // }
 
     // map peripherals into memory of the cpu
     // TODO: DAC
@@ -250,24 +276,41 @@ static void stm32f4xx_soc_realize(DeviceState *dev_soc, Error **errp) {
     if(stm32_realize_peripheral(&s->armv7m, s->tim[3], 0x40000C00, 50, errp) < 0) return; // TIM5
 
     /* ADC 1 to 3 */
-    object_property_set_int(OBJECT(s->adc_irqs), STM32FXXX_NUM_ADCS,
-                            "num-lines", &err);
+    object_property_set_int(OBJECT(s->adc_irqs),"num-lines", STM32FXXX_NUM_ADCS
+                            , &err);
 
-    object_property_set_bool(OBJECT(s->adc_irqs), true, "realized", &err);
-    if (err != NULL) {
-        error_propagate(errp, err);
-        return ;
-    }
+    object_property_set_bool(OBJECT(s->adc_irqs), "realized", true , &error_fatal);
+    //if (err != NULL) {
+    //    error_propagate(errp, err);
+    //    return ;
+    //}
     qdev_connect_gpio_out(DEVICE(s->adc_irqs), 0, qdev_get_gpio_in(armv7m, 18));
 
     if(stm32_realize_peripheral(&s->armv7m, s->adc[0], 0x40012000, 18, errp) < 0) return; // ADC1 & 2 & 3
+ 
+    static const int spi_irq[] =   { 35, 36, 51, 0, 0, 0 };
+    static const uint32_t spi_addr[] =   { 0x40013000, 0x40003800, 0x40003C00,
+                                       0x40013400, 0x40015000, 0x40015400 };
 
-    if(stm32_realize_peripheral(&s->armv7m, s->spi[0], 0x40013000, 35, errp) < 0) return;
-    if(stm32_realize_peripheral(&s->armv7m, s->spi[1], 0x40003800, 36, errp) < 0) return;
-    if(stm32_realize_peripheral(&s->armv7m, s->spi[2], 0x40003C00, 51, errp) < 0) return;
-    if(stm32_realize_peripheral(&s->armv7m, s->spi[3], 0x40013400, 84, errp) < 0) return;
-    if(stm32_realize_peripheral(&s->armv7m, s->spi[4], 0x40015000, 85, errp) < 0) return;
-    if(stm32_realize_peripheral(&s->armv7m, s->spi[5], 0x40015400, 86, errp) < 0) return;
+    DeviceState *dev;
+    SysBusDevice *busdev;
+
+    // Attach SPI
+    for (i = 0; i < 5; i++) {
+        dev = DEVICE(&(s->spi[i]));
+             if (!sysbus_realize(SYS_BUS_DEVICE(&s->spi[i]), errp)) {
+            return;
+        }
+        busdev = SYS_BUS_DEVICE(dev);
+        sysbus_mmio_map(busdev, 0, spi_addr[i]);
+        sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(armv7m, spi_irq[i]));
+    }
+
+    //if(stm32_realize_peripheral(&s->armv7m, s->spi[0], 0x40013000, 35, errp) < 0) return;
+    //if(stm32_realize_peripheral(&s->armv7m, s->spi[1], 0x40003800, 36, errp) < 0) return;
+    //if(stm32_realize_peripheral(&s->armv7m, s->spi[2], 0x40003C00, 51, errp) < 0) return;
+    //if(stm32_realize_peripheral(&s->armv7m, s->spi[3], 0x40013400, 84, errp) < 0) return;
+    //if(stm32_realize_peripheral(&s->armv7m, s->spi[4], 0x40015000, 85, errp) < 0) return;
 
     if(stm32_realize_peripheral(&s->armv7m, s->fmc, 0xa0000000, 48, errp) < 0) return;
 
@@ -297,7 +340,7 @@ static void stm32f4xx_soc_class_init(ObjectClass *klass, void *data)
     DeviceClass *dc = DEVICE_CLASS(klass);
 
     dc->realize = stm32f4xx_soc_realize;
-    dc->props = stm32f4xx_soc_properties;
+    dc->props_ = stm32f4xx_soc_properties;
 }
 
 static const TypeInfo stm32f4xx_soc_info = {

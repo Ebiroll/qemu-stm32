@@ -37,6 +37,7 @@
 #include "hw/arm/stm32/stm32fxxx_rcc.h"
 #include "hw/arm/stm32/stm32f2xx_rtc.h"
 #include "hw/arm/stm32/stm32fxxx_pwr.h"
+#include "hw/arm/stm32/stm32fxxx_gpio.h"
 
 #define TYPE_STM32F405_SOC "stm32f405-soc"
 OBJECT_DECLARE_SIMPLE_TYPE(STM32F405State, STM32F405_SOC)
@@ -45,6 +46,7 @@ OBJECT_DECLARE_SIMPLE_TYPE(STM32F405State, STM32F405_SOC)
 #define STM_NUM_TIMERS 4
 #define STM_NUM_ADCS 6
 #define STM_NUM_SPIS 6
+#define STM_NUM_GPIO 5
 
 #define FLASH_BASE_ADDRESS 0x08000000
 #define FLASH_SIZE (1024 * 1024)
@@ -69,6 +71,7 @@ struct STM32F405State {
     OrIRQState adc_irqs;
     STM32F2XXADCState adc[STM_NUM_ADCS];
     STM32F2XXSPIState spi[STM_NUM_SPIS];
+    stm32fxxx_gpio gpio[STM_NUM_GPIO];
 
     stm32fxxx_pwr     pwr;
     STM32FXXXRccState rcc;
