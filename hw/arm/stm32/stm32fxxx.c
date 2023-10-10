@@ -47,6 +47,7 @@
 #include "hw/arm/armv7m.h"
 #include "hw/arm/stm32fxxx.h"
 #include "hw/arm/stm32/stm32fxxx_rcc.h"
+#include "hw/adc/stm32f2xx_adc.h"
 #include "sysemu/sysemu.h"
 #include "migration/vmstate.h"
 

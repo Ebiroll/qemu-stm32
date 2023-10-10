@@ -82,6 +82,9 @@ struct STM32F2XXADCState {
     uint32_t adc_jdr[4];
     uint32_t adc_dr;
 
+    uint8_t reset_input[16];
+    uint32_t input[16];
+
     qemu_irq irq;
 };
 

@@ -76,6 +76,11 @@ static void stm32f405_soc_initfn(Object *obj)
 
     for (i = 0; i < STM_NUM_ADCS; i++) {
         object_initialize_child(obj, "adc[*]", &s->adc[i], TYPE_STM32F2XX_ADC);
+
+
+       qdev_prop_set_uint32(DEVICE(&s->adc[i]), "input9" /* Version */,
+                122);
+
     }
 
     for (i = 0; i < STM_NUM_SPIS; i++) {
@@ -102,6 +107,8 @@ static void stm32f405_soc_initfn(Object *obj)
 
     s->sysclk = qdev_init_clock_in(DEVICE(s), "sysclk", NULL, NULL, 0);
     s->refclk = qdev_init_clock_in(DEVICE(s), "refclk", NULL, NULL, 0);
+
+
 }
 
 

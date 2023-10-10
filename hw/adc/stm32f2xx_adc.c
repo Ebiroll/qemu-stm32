@@ -27,10 +27,11 @@
 #include "migration/vmstate.h"
 #include "qemu/log.h"
 #include "qemu/module.h"
+#include "hw/qdev-properties-system.h"
 #include "hw/adc/stm32f2xx_adc.h"
 
 #ifndef STM_ADC_ERR_DEBUG
-#define STM_ADC_ERR_DEBUG 0
+#define STM_ADC_ERR_DEBUG 5
 #endif
 
 #define  ADC_CR1_AWDCH                       ((uint32_t)0x0000001F)        /*!<AWDCH[4:0] bits (Analog watchdog channel select bits) */
@@ -97,7 +98,8 @@ static void stm32f2xx_adc_reset(DeviceState *dev)
 {
     STM32F2XXADCState *s = STM32F2XX_ADC(dev);
 
-    s->adc_sr = 0x00000000;
+// End of conversion
+    s->adc_sr = 0x00000002;
     s->adc_cr1 = 0x00000000;
     s->adc_cr2 = 0x00000000;
     s->adc_smpr1 = 0x00000000;
@@ -125,6 +127,15 @@ static uint32_t stm32f2xx_adc_generate_value(STM32F2XXADCState *s)
 {
     /* Attempts to fake some ADC values */
     s->adc_dr = s->adc_dr + 7;
+
+    int channel =  s->adc_sqr3 & 0x000000f;
+
+
+    DB_PRINT("Channel: 0x%d\n", channel);
+    s->adc_dr = s->input[channel];
+
+    DB_PRINT("value: 0x%x\n", s->adc_dr);
+
 
     switch ((s->adc_cr1 & ADC_CR1_RES) >> 24) {
     case 0:
@@ -165,7 +176,10 @@ static uint64_t stm32f2xx_adc_read(void *opaque, hwaddr addr,
 
     switch (addr) {
     case ADC_SR:
+    {
+         DB_PRINT("Vaule: 0x%d\n", s->adc_sr);
         return s->adc_sr;
+    }
     case ADC_CR1:
         return s->adc_cr1;
     case ADC_CR2:
@@ -243,6 +257,9 @@ static void stm32f2xx_adc_write(void *opaque, hwaddr addr,
         s->adc_cr1 = value;
         break;
     case ADC_CR2:
+        // end of conversion bit
+        s->adc_sr=2;
+
         s->adc_cr2 = value;
         break;
     case ADC_SMPR1:
@@ -323,10 +340,19 @@ static const VMStateDescription vmstate_stm32f2xx_adc = {
         VMSTATE_UINT32(adc_jsqr, STM32F2XXADCState),
         VMSTATE_UINT32_ARRAY(adc_jdr, STM32F2XXADCState, 4),
         VMSTATE_UINT32(adc_dr, STM32F2XXADCState),
+        VMSTATE_UINT32_ARRAY(input, STM32F2XXADCState, 16),
         VMSTATE_END_OF_LIST()
     }
 };
 
+
+static Property adc_properties[] = {
+    /* Reset values for ADC inputs */
+    DEFINE_PROP_UINT8("input7", STM32F2XXADCState, reset_input[0], 0xf0),
+    DEFINE_PROP_UINT8("input8", STM32F2XXADCState, reset_input[1], 0xe0),
+    DEFINE_PROP_UINT8("input9", STM32F2XXADCState, reset_input[2], 0xd0),
+    DEFINE_PROP_END_OF_LIST(),
+};
 static void stm32f2xx_adc_init(Object *obj)
 {
     STM32F2XXADCState *s = STM32F2XX_ADC(obj);
@@ -342,8 +368,10 @@ static void stm32f2xx_adc_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
 
+
     dc->reset = stm32f2xx_adc_reset;
     dc->vmsd = &vmstate_stm32f2xx_adc;
+    device_class_set_props(dc, adc_properties);
 }
 
 static const TypeInfo stm32f2xx_adc_info = {
