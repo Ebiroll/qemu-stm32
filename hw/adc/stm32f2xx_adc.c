@@ -97,6 +97,7 @@
 static void stm32f2xx_adc_reset(DeviceState *dev)
 {
     STM32F2XXADCState *s = STM32F2XX_ADC(dev);
+    int i=0;
 
 // End of conversion
     s->adc_sr = 0x00000002;
@@ -119,6 +120,11 @@ static void stm32f2xx_adc_reset(DeviceState *dev)
     s->adc_jdr[2] = 0x00000000;
     s->adc_jdr[3] = 0x00000000;
     s->adc_dr = 0x00000000;
+
+    for (i = 0; i < 16; i++) {
+        s->input[i] = s->reset_input[i];
+    }
+
 }
 
 #define  ADC_CR1_RES                         ((uint32_t)0x03000000)        /*!<RES[2:0] bits (Resolution)                            */
@@ -133,6 +139,10 @@ static uint32_t stm32f2xx_adc_generate_value(STM32F2XXADCState *s)
 
     DB_PRINT("Channel: 0x%d\n", channel);
     s->adc_dr = s->input[channel];
+    if (channel ==9) {
+        // get propery "input9"
+
+    }
 
     DB_PRINT("value: 0x%x\n", s->adc_dr);
 
@@ -348,9 +358,9 @@ static const VMStateDescription vmstate_stm32f2xx_adc = {
 
 static Property adc_properties[] = {
     /* Reset values for ADC inputs */
-    DEFINE_PROP_UINT8("input7", STM32F2XXADCState, reset_input[0], 0xf0),
-    DEFINE_PROP_UINT8("input8", STM32F2XXADCState, reset_input[1], 0xe0),
-    DEFINE_PROP_UINT8("input9", STM32F2XXADCState, reset_input[2], 0xd0),
+    DEFINE_PROP_UINT32("input7", STM32F2XXADCState, reset_input[7], 0xf0),
+    DEFINE_PROP_UINT32("input8", STM32F2XXADCState, reset_input[8], 0xe0),
+    DEFINE_PROP_UINT32("input9", STM32F2XXADCState, reset_input[9], 0xd0),
     DEFINE_PROP_END_OF_LIST(),
 };
 static void stm32f2xx_adc_init(Object *obj)
@@ -362,6 +372,7 @@ static void stm32f2xx_adc_init(Object *obj)
     memory_region_init_io(&s->mmio, obj, &stm32f2xx_adc_ops, s,
                           TYPE_STM32F2XX_ADC, 0x100);
     sysbus_init_mmio(SYS_BUS_DEVICE(obj), &s->mmio);
+
 }
 
 static void stm32f2xx_adc_class_init(ObjectClass *klass, void *data)
