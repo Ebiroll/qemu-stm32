@@ -90,14 +90,6 @@ do { printf("STM32L552_RCC: " fmt , ## __VA_ARGS__); } while (0)
 #define RCC_CR_MSIRDY_BIT       1    // MSI clock ready flag
 #define RCC_CR_MSION_BIT           0    // MSI clock enable
 
-//#define RCC_CR_PLLI2SRDY_BIT    27
-//#define RCC_CR_PLLI2SON_BIT     26
-//#define RCC_CR_PLLRDY_BIT       25
-//#define RCC_CR_PLLON_BIT        24
-//#define RCC_CR_CSSON_BIT        19
-//#define RCC_CR_HSEBYP_BIT       18
-//#define RCC_CR_HSERDY_BIT       17
-//#define RCC_CR_HSEON_BIT        16
 #define RCC_CR_HSICAL_START     8
 #define RCC_CR_HSICAL_MASK      0x00ff0000
 #define RCC_CR_HSITRIM_START    3
@@ -563,11 +555,12 @@ static void stm32_rcc_periph_enable(
 static uint32_t stm32_rcc_RCC_CR_read(struct STM32L552RccState *s)
 {
     /* Get the status of the clocks. */
-    const bool PLLON = true; // clktree_is_enabled(s->PLLCLK);
+    const bool PLLON = clktree_is_enabled(s->PLLCLK); // clktree_is_enabled(s->PLLCLK);
     const bool HSEON = true; //clktree_is_enabled(s->HSECLK);
     const bool HSION = true; //clktree_is_enabled(s->HSICLK);
     const bool PLLSAI1ON = true; //clktree_is_enabled(s->PLLI2SCLK);
     const bool PLLSAI2ON = true; //clktree_is_enabled(s->PLLI2SCLK);
+    const bool PLLRDY = true;
 
 uint32_t new_value =  GET_BIT_MASK(RCC_CR_PLLRDY_BIT, PLLON) |
         GET_BIT_MASK(RCC_CR_PLLON_BIT, PLLON) |
@@ -577,6 +570,8 @@ uint32_t new_value =  GET_BIT_MASK(RCC_CR_PLLRDY_BIT, PLLON) |
 
         GET_BIT_MASK(RCC_CR_HSIRDY_BIT, HSION) |
         GET_BIT_MASK(RCC_CR_HSION_BIT, HSION) |
+
+        GET_BIT_MASK(RCC_CR_PLLRDY_BIT,PLLRDY) |
 
         GET_BIT_MASK(RCC_CR_PLLSAI1RDY_BIT, PLLSAI1ON) |
         GET_BIT_MASK(RCC_CR_PLLSAI1ON_BIT, PLLSAI2ON);
@@ -618,6 +613,10 @@ static void stm32_rcc_RCC_CR_write(struct STM32L552RccState *s, uint32_t new_val
        s->RCC_CFGR_SW == SW_PLL_SELECTED) {
         printf("PLL cannot be disabled while it is selected as the system clock.");
     }
+
+    DPRINTF("RCC_CR_read %lu \n",
+                (unsigned long)new_PLLON);
+
     clktree_set_enabled(s->PLLCLK, new_PLLON);
 
     DPRINTF("PLL On %lu \n",
