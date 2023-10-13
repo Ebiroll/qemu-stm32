@@ -31,6 +31,7 @@
 #include "hw/misc/unimp.h"
 #include "hw/arm/stm32/stm32f2xx_rtc.h"
 #include "hw/qdev-core.h"
+#include "hw/arm/stm32/stm32lxxx_syscfg.h"
 
 
 
@@ -45,7 +46,9 @@ static const uint32_t usart_addr[] = { 0x40013800,
 /* At the moment only Timer 2 to 5 are modelled */
 static const uint32_t timer_addr[] = { 0x40000000, 0x40000400,
                                        0x40000800, 0x40000C00 };
-static const uint32_t adc_addr[] = { 0x42028000 };
+static const uint32_t adc_addr[] = { 0x42028000
+    
+ };  // 0x42028000
 
 
 static const uint32_t spi_addr[] =   { 0x40013000, 0x40003800, 0x40003C00 };
@@ -68,7 +71,7 @@ static void stm32l552_soc_initfn(Object *obj)
 
     object_initialize_child(obj, "armv7m", &s->armv7m, TYPE_ARMV7M);
 
-    object_initialize_child(obj, "syscfg", &s->syscfg, TYPE_STM32F4XX_SYSCFG);
+    object_initialize_child(obj, "syscfg", &s->syscfg, TYPE_STM32LXXX_SYSCFG);
 
     for (i = 0; i < STM_NUM_USARTS; i++) {
         object_initialize_child(obj, "usart[*]", &s->usart[i],
@@ -80,14 +83,15 @@ static void stm32l552_soc_initfn(Object *obj)
                                 TYPE_STM32F2XX_TIMER);
     }
 
-    for (i = 0; i < STM_NUM_ADCS; i++) {
-        object_initialize_child(obj, "adc[*]", &s->adc[i], TYPE_STM32F2XX_ADC);
+    object_initialize_child(obj, "adc", &s->adc, TYPE_STM32L552_ADC);
+    //for (i = 0; i < STM_NUM_ADCS; i++) {
+    //    object_initialize_child(obj, "adc[*]", &s->adc[i], TYPE_STM32L552_ADC);
 
 
-       qdev_prop_set_uint32(DEVICE(&s->adc[i]), "input9" /* Version */,
-                122);
+    //   qdev_prop_set_uint32(DEVICE(&s->adc[i]), "input9" /* Version */,
+    //            122);
 
-    }
+    //}
 
     for (i = 0; i < STM_NUM_SPIS; i++) {
         object_initialize_child(obj, "spi[*]", &s->spi[i], TYPE_STM32F2XX_SPI);
@@ -95,7 +99,7 @@ static void stm32l552_soc_initfn(Object *obj)
     #define NAME_SIZE 32
     char name[NAME_SIZE];
 
-    for (i = 0; i < 5; i++) {
+    for (i = 0; i < STM_NUM_GPIO; i++) {
         snprintf(name, NAME_SIZE, "GPIO%c", 'A' + i);
         object_initialize_child(obj, name, &s->gpio[i], TYPE_STM32FXXX_GPIO);
         //qdev_prop_set_uint8(DEVICE(s->gpio[i]), "port_id", i);
@@ -105,9 +109,9 @@ static void stm32l552_soc_initfn(Object *obj)
 
     object_initialize_child(obj, "exti", &s->exti, TYPE_STM32F4XX_EXTI);
 
-    object_initialize_child(obj, "stm32fxxx-rcc", &s->rcc, TYPE_STM32FXXX_RCC);
+    object_initialize_child(obj, "stm32l552-rcc", &s->rcc, TYPE_STM32L552_RCC);
     object_initialize_child(obj, "stm32fxxx-rtc", &s->rtc, TYPE_STM32FXXX_RTC);
-    object_initialize_child(obj, "stm32fxxx-pwr", &s->pwr, TYPE_STM32FXXX_PWR);
+    object_initialize_child(obj, "stm32-pwr", &s->pwr, TYPE_STM32L552_PWR);
 
 
 
@@ -130,6 +134,12 @@ static int gpio_realize_peripheral(ARMv7MState *cpu, stm32fxxx_gpio *dev, hwaddr
     armv7m = DEVICE(cpu);
     sysbus_mmio_map(busdev, 0, base);
     sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(armv7m, irqnr));
+
+    //MemoryRegion *flash_alias = g_new(MemoryRegion, 1);
+    //memory_region_init_alias(flash_alias, OBJECT(dev),
+    //                         "STM32L552.flash.alias", &dev->flash, 0,
+    //                         FLASH_SIZE);
+
     return 0;
 }
 
@@ -158,7 +168,6 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
     }
 
 
-//create_unimplemented_device("RCC",         0x40023800, 0x400);
 
     /*
      * TODO: ideally we should model the SoC RCC and its ability to
@@ -217,7 +226,7 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
     }
     busdev = SYS_BUS_DEVICE(dev);
     sysbus_mmio_map(busdev, 0, SYSCFG_ADD);
-    sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(armv7m, SYSCFG_IRQ));
+    //sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(armv7m, SYSCFG_IRQ));
 
     /* Attach UART (uses USART registers) and USART controllers */
     for (i = 0; i < STM_NUM_USARTS; i++) {
@@ -257,16 +266,14 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
     qdev_connect_gpio_out(DEVICE(&s->adc_irqs), 0,
                           qdev_get_gpio_in(armv7m, ADC_IRQ));
 
-    for (i = 0; i < STM_NUM_ADCS; i++) {
-        dev = DEVICE(&(s->adc[i]));
-        if (!sysbus_realize(SYS_BUS_DEVICE(&s->adc[i]), errp)) {
-            return;
-        }
-        busdev = SYS_BUS_DEVICE(dev);
-        sysbus_mmio_map(busdev, 0, adc_addr[i]);
-        sysbus_connect_irq(busdev, 0,
-                           qdev_get_gpio_in(DEVICE(&s->adc_irqs), i));
+    dev = DEVICE(&(s->adc));
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->adc), errp)) {
+        return;
     }
+    busdev = SYS_BUS_DEVICE(dev);
+    sysbus_mmio_map(busdev, 0, adc_addr[0]);
+    //sysbus_connect_irq(busdev, 0,
+    //                    qdev_get_gpio_in(DEVICE(&s->adc_irqs), i));
 
     /* SPI devices */
     for (i = 0; i < STM_NUM_SPIS; i++) {
@@ -293,10 +300,10 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
         return;
     }
     busdev = SYS_BUS_DEVICE(dev);
-    sysbus_mmio_map(busdev, 0, 0x40023800);
+    sysbus_mmio_map(busdev, 0, 0x40021000);
 
     // 0x40002800
-    /* RCT Device*/
+    /* RTC Device*/
     dev = DEVICE(&s->rtc);
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->rtc), errp)) {
         return;
@@ -304,7 +311,6 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
     busdev = SYS_BUS_DEVICE(dev);
     sysbus_mmio_map(busdev, 0, 0x40002800);
 
-    // create_unimplemented_device("PWR",         , 0x400);4
     dev = DEVICE(&s->pwr);
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->pwr), errp)) {
         return;
@@ -323,21 +329,18 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
     for (i = 0; i < 16; i++) {
         sysbus_connect_irq(busdev, i, qdev_get_gpio_in(armv7m, exti_irq[i]));
     }
-    for (i = 0; i < 16; i++) {
-        qdev_connect_gpio_out(DEVICE(&s->syscfg), i, qdev_get_gpio_in(dev, i));
-    }
+    //for (i = 0; i < 16; i++) {
+    //    qdev_connect_gpio_out(DEVICE(&s->syscfg), i, qdev_get_gpio_in(dev, i));
+    //}
 
     if(gpio_realize_peripheral(&s->armv7m, &s->gpio[0], 0x42020000, 0, errp) < 0) return;
     if(gpio_realize_peripheral(&s->armv7m, &s->gpio[1], 0x42020400, 0, errp) < 0) return;
     if(gpio_realize_peripheral(&s->armv7m, &s->gpio[2], 0x42020800, 0, errp) < 0) return;
     if(gpio_realize_peripheral(&s->armv7m, &s->gpio[3], 0x42020C00, 0, errp) < 0) return;
     if(gpio_realize_peripheral(&s->armv7m, &s->gpio[4], 0x42021000, 0, errp) < 0) return;
-    //if(stm32_realize_peripheral(&s->armv7m, s->gpio[5], 0x40021400, 0, errp) < 0) return;
-    //if(stm32_realize_peripheral(&s->armv7m, s->gpio[6], 0x40021800, 0, errp) < 0) return;
-    //if(stm32_realize_peripheral(&s->armv7m, s->gpio[7], 0x40021C00, 0, errp) < 0) return;
-    //if(stm32_realize_peripheral(&s->armv7m, s->gpio[8], 0x40022000, 0, errp) < 0) return;
-    //if(stm32_realize_peripheral(&s->armv7m, s->gpio[9], 0x40022400, 0, errp) < 0) return;
-    //if(stm32_realize_peripheral(&s->armv7m, s->gpio[10], 0x40022800, 0, errp) < 0) return;
+    if(gpio_realize_peripheral(&s->armv7m, &s->gpio[5], 0x42021400, 0, errp) < 0) return;
+    if(gpio_realize_peripheral(&s->armv7m, &s->gpio[6], 0x42021800, 0, errp) < 0) return;
+    if(gpio_realize_peripheral(&s->armv7m, &s->gpio[7], 0x42021C00, 0, errp) < 0) return;
 
 
 
@@ -403,6 +406,7 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
 "DBGMCU","e0044000","e00443ff","0x400","true","true","false","true","false","Default","false","","","Generated by SVD-Loader."
 */
 
+    //create_unimplemented_device("PWR",         0x40007000, 0x400);
 
     create_unimplemented_device("tim[2]",      0x40000400, 0x400);
     create_unimplemented_device("sec_tim[2]",  0x50000000, 0x400);
@@ -414,8 +418,8 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
     create_unimplemented_device("sec_tim[5]",   0x50000C00, 0x400);
     create_unimplemented_device("tim[6]",       0x40001000, 0x400);
     create_unimplemented_device("sec_tim[6]",   0x50001000, 0x400);
-    create_unimplemented_device("tim[7]",       0x40001400, 0x400);
-    create_unimplemented_device("sec_tim[7]",   0x50001400, 0x400);
+    //create_unimplemented_device("tim[7]",       0x40001400, 0x400);
+    //create_unimplemented_device("sec_tim[7]",   0x50001400, 0x400);
     create_unimplemented_device("DAC",          0x40007400, 0x400);
     create_unimplemented_device("SEC_DAC",      0x50007400, 0x400);
     create_unimplemented_device("OPAMP",        0x40007800, 0x400);
@@ -459,7 +463,7 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
     create_unimplemented_device("SEC_USART4", 0x50005000, 0x400);
     //create_unimplemented_device("USART5",     0x40005000, 0x400);
     create_unimplemented_device("SEC_USART5", 0x50005000, 0x400);
-    create_unimplemented_device("ADC_COMMON",     0x42028300, 0x400);
+    //create_unimplemented_device("ADC_COMMON",     0x42028300, 0x400);
     create_unimplemented_device("SEC_ADC_Common", 0x52028300, 0x400);
     //create_unimplemented_device("ADC",     0x42028000, 0x400);
     create_unimplemented_device("SEC_ADC", 0x52028000, 0x400);

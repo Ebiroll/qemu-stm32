@@ -25,28 +25,29 @@
 #ifndef HW_ARM_STM32L552_SOC_H
 #define HW_ARM_STM32L552_SOC_H
 
-#include "hw/misc/stm32f4xx_syscfg.h"
+#include "hw/arm/stm32/stm32lxxx_syscfg.h"
 #include "hw/timer/stm32f2xx_timer.h"
 #include "hw/char/stm32f2xx_usart.h"
-#include "hw/adc/stm32f2xx_adc.h"
 #include "hw/misc/stm32f4xx_exti.h"
 #include "hw/or-irq.h"
 #include "hw/ssi/stm32f2xx_spi.h"
 #include "hw/arm/armv7m.h"
 #include "qom/object.h"
-#include "hw/arm/stm32/stm32fxxx_rcc.h"
+#include "hw/arm/stm32/stm32l552_rcc.h"
 #include "hw/arm/stm32/stm32f2xx_rtc.h"
-#include "hw/arm/stm32/stm32fxxx_pwr.h"
+#include "hw/arm/stm32/stm32l552_pwr.h"
 #include "hw/arm/stm32/stm32fxxx_gpio.h"
+#include "hw/arm/stm32/stm32l552_adc.h"
 
 #define TYPE_STM32L552_SOC "stm32l552-soc"
 OBJECT_DECLARE_SIMPLE_TYPE(STM32L552State, STM32L552_SOC)
 
 #define STM_NUM_USARTS 7
 #define STM_NUM_TIMERS 4
-#define STM_NUM_ADCS 1
+// Actually 2 ADC:s, but we emulate them as one
+#define STM_NUM_ADCS 1 
 #define STM_NUM_SPIS 3
-#define STM_NUM_GPIO 5
+#define STM_NUM_GPIO 8
 
 #define FLASH_BASE_ADDRESS 0x08000000
 #define FLASH_SIZE (1024 * 1024)
@@ -125,17 +126,18 @@ struct STM32L552State {
 
     ARMv7MState armv7m;
 
-    STM32F4xxSyscfgState syscfg;
+    STM32lxxxSyscfgState syscfg;
     STM32F4xxExtiState exti;
     STM32F2XXUsartState usart[STM_NUM_USARTS];
     STM32F2XXTimerState timer[STM_NUM_TIMERS];
     OrIRQState adc_irqs;
-    STM32F2XXADCState adc[STM_NUM_ADCS];
+    STM32L552ADCState adc;
     STM32F2XXSPIState spi[STM_NUM_SPIS];
     stm32fxxx_gpio gpio[STM_NUM_GPIO];
 
-    stm32fxxx_pwr     pwr;
-    STM32FXXXRccState rcc;
+    //stm32fxxx_pwr     pwr;
+    stm32l552_pwr     pwr;
+    STM32L552RccState rcc;
     STM32F2XXRtcState rtc;
 
     MemoryRegion ccm;

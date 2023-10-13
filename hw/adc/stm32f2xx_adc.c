@@ -85,6 +85,9 @@
 #define  ADC_CR2_EXTEN_1                     ((uint32_t)0x20000000)        /*!<Bit 1 */
 #define  ADC_CR2_SWSTART                     ((uint32_t)0x40000000)        /*!<Start Conversion of regular channels */
 
+#define RSWSTART ((uint32_t) (<1 << 17))
+//0x00020000
+
 
 #define DB_PRINT_L(lvl, fmt, args...) do { \
     if (STM_ADC_ERR_DEBUG >= lvl) { \

@@ -41,7 +41,6 @@
 
 #include "hw/misc/stm32f2xx_syscfg.h"
 #include "hw/timer/stm32f2xx_timer.h"
-#include "hw/adc/stm32f2xx_adc.h"
 #include "hw/ssi/stm32f2xx_spi.h"
 #include "hw/or-irq.h"
 #include "hw/arm/armv7m.h"
@@ -76,6 +75,7 @@ struct stm32f4xx_soc {
     SysBusDevice *usart[STM32FXXX_NUM_UARTS];
     SysBusDevice *tim[STM32FXXX_NUM_TIMERS];
     SysBusDevice *adc[STM32FXXX_NUM_ADCS];
+
     STM32F2XXSPIState spi[STM32FXXX_NUM_SPIS];
     SysBusDevice *rcc;
     SysBusDevice *fmc;
@@ -287,7 +287,7 @@ static void stm32f4xx_soc_realize(DeviceState *dev_soc, Error **errp) {
     //}
     qdev_connect_gpio_out(DEVICE(s->adc_irqs), 0, qdev_get_gpio_in(armv7m, 18));
 
-    if(stm32_realize_peripheral(&s->armv7m, s->adc[0], 0x40012000, 18, errp) < 0) return; // ADC1 & 2 & 3
+    //if(stm32_realize_peripheral(&s->armv7m, s->adc, 0x40012000, 18, errp) < 0) return; // ADC1 & 2 & 3
  
     static const int spi_irq[] =   { 35, 36, 51, 0, 0, 0 };
     static const uint32_t spi_addr[] =   { 0x40013000, 0x40003800, 0x40003C00,

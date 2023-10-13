@@ -52,8 +52,8 @@ OBJECT_DECLARE_TYPE(TSMPROMachineState, TSMPROMachineClass, TSMPRO_MACHINE)
 static void neon_tsmpro_init(MachineState *machine);
 
 
-/* Main SYSCLK frequency in Hz (84MHz) */
-#define SYSCLK_FRQ 84000000ULL
+/* Main SYSCLK frequency in Hz (110MHz) */
+#define SYSCLK_FRQ 110000000ULL
 
 static void neon_tsmpro_init(MachineState *machine)
 {
@@ -75,6 +75,12 @@ static void neon_tsmpro_init(MachineState *machine)
     sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
 
 
+
+    //if (strcmp(machine->cpu_type, mc->default_cpu_type) != 0) {
+    //    error_report("This board can only be used with CPU %s",
+    //                 mc->default_cpu_type);
+    //    exit(1);
+    //}
     //DeviceState *rcc = qdev_new("stm32fxxx-rcc");
     //qdev_prop_set_uint32(rcc, "osc_freq", 84000000);
     //qdev_prop_set_uint32(rcc, "osc32_freq", 32000);
