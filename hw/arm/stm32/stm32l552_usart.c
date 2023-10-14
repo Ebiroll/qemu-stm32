@@ -106,7 +106,10 @@ static uint64_t stm32l552_usart_read(void *opaque, hwaddr addr,
         retvalue = retvalue | USART_ISR_TEACK | USART_ISR_REACK;
         return retvalue;
     case USART_RDR:
-        retvalue = s->usart_rdr;
+        retvalue = s->usart_rdr & 0x3FF;
+        s->usart_sr &= ~USART_SR_RXNE;
+        qemu_chr_fe_accept_input(&s->chr);
+        qemu_set_irq(s->irq, 0);
         return retvalue;
     case USART_SR:
         retvalue = s->usart_sr;
