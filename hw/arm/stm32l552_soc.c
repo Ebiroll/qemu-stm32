@@ -40,15 +40,18 @@
 
 // LPUART1 0x40008000
 static const uint32_t usart_addr[] = { 0x40013800, 
-        0x40004400, 0x40004800,
-                                       0x40004C00, 0x40005000, 0x40011400,
-                                       0x40007800, 0x40007C00 };
+        0x40004400, 0x40004800, 0x40004C00 , 0x40005000 }; 
+//                                        , 0x40004800,
+//                                       0x40007800, 0x40007C00 };
 /* At the moment only Timer 2 to 5 are modelled */
-static const uint32_t timer_addr[] = { 0x40000000, 0x40000400,
-                                       0x40000800, 0x40000C00 };
-static const uint32_t adc_addr[] = { 0x42028000
-    
- };  // 0x42028000
+//static const uint32_t timer_addr[] = { 0x40000000, 0x40000400,
+//                                       0x40000800, 0x40000C00 };
+
+static const uint32_t timer_addr[] = { 0x40012C00, 0x40000000, 0x40000400,
+                                       0x40000800, 0x40000C00 , 0x40001000 , 0x40001400 };
+
+
+// static const uint32_t adc_addr[] = { 0x42028000 };  // 0x42028000
 
 
 static const uint32_t spi_addr[] =   { 0x40013000, 0x40003800, 0x40003C00 };
@@ -56,7 +59,7 @@ static const uint32_t spi_addr[] =   { 0x40013000, 0x40003800, 0x40003C00 };
 #define EXTI_ADDR                      0x40013C00
 
 #define SYSCFG_IRQ               71
-static const int usart_irq[] = { 37, 38, 39, 52, 53, 71, 82, 83 };
+static const int usart_irq[] = { 61, 62, 63, 64, 53, 71, 82, 83 };
 static const int timer_irq[] = { 28, 29, 30, 50 };
 #define ADC_IRQ 18
 static const int spi_irq[] =   { 35, 36, 51, 0, 0, 0 };
@@ -73,12 +76,12 @@ static void stm32l552_soc_initfn(Object *obj)
 
     object_initialize_child(obj, "syscfg", &s->syscfg, TYPE_STM32LXXX_SYSCFG);
 
-    for (i = 0; i < STM_NUM_USARTS; i++) {
+    for (i = 0; i < STM32L552_NUM_USARTS; i++) {
         object_initialize_child(obj, "usart[*]", &s->usart[i],
-                                TYPE_STM32F2XX_USART);
+                                TYPE_STM32L552_USART);
     }
 
-    for (i = 0; i < STM_NUM_TIMERS; i++) {
+    for (i = 0; i < STM32L552_NUM_TIMERS; i++) {
         object_initialize_child(obj, "timer[*]", &s->timer[i],
                                 TYPE_STM32F2XX_TIMER);
     }
@@ -245,7 +248,7 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
     //sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(armv7m, SYSCFG_IRQ));
 
     /* Attach UART (uses USART registers) and USART controllers */
-    for (i = 0; i < STM_NUM_USARTS; i++) {
+    for (i = 0; i < STM32L552_NUM_USARTS; i++) {
         dev = DEVICE(&(s->usart[i]));
         qdev_prop_set_chr(dev, "chardev", serial_hd(i));
         if (!sysbus_realize(SYS_BUS_DEVICE(&s->usart[i]), errp)) {
@@ -257,7 +260,7 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
     }
 
     /* Timer 2 to 5 */
-    for (i = 0; i < STM_NUM_TIMERS; i++) {
+    for (i = 0; i < STM32L552_NUM_TIMERS; i++) {
         dev = DEVICE(&(s->timer[i]));
         qdev_prop_set_uint64(dev, "clock-frequency", 1000000000);
         if (!sysbus_realize(SYS_BUS_DEVICE(&s->timer[i]), errp)) {
@@ -267,6 +270,15 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
         sysbus_mmio_map(busdev, 0, timer_addr[i]);
         sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(armv7m, timer_irq[i]));
     }
+
+    dev = DEVICE(&(s->adc));
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->adc), errp)) {
+        return;
+    }
+    busdev = SYS_BUS_DEVICE(dev);
+    sysbus_mmio_map(busdev, 0, 0x42028000);
+
+
 
     /* ADC device, the IRQs are ORed together */
     if (!object_initialize_child_with_props(OBJECT(s), "adc-orirq",
@@ -282,12 +294,6 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
     qdev_connect_gpio_out(DEVICE(&s->adc_irqs), 0,
                           qdev_get_gpio_in(armv7m, ADC_IRQ));
 
-    dev = DEVICE(&(s->adc));
-    if (!sysbus_realize(SYS_BUS_DEVICE(&s->adc), errp)) {
-        return;
-    }
-    busdev = SYS_BUS_DEVICE(dev);
-    sysbus_mmio_map(busdev, 0, adc_addr[0]);
     //sysbus_connect_irq(busdev, 0,
     //                    qdev_get_gpio_in(DEVICE(&s->adc_irqs), i));
 
@@ -423,17 +429,17 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
 */
 
     //create_unimplemented_device("PWR",         0x40007000, 0x400);
-
-    create_unimplemented_device("tim[2]",      0x40000400, 0x400);
-    create_unimplemented_device("sec_tim[2]",  0x50000000, 0x400);
-    create_unimplemented_device("tim[3]",       0x40000400, 0x400);
+                                            //   40014000
+    //create_unimplemented_device("tim[3]",      0x40000400, 0x400);
+    create_unimplemented_device("sec_tim[3]",  0x50000000, 0x400);
+    //create_unimplemented_device("tim[3]",       0x40000400, 0x400);
     create_unimplemented_device("sec_tim[3]",   0x50000400, 0x400);
-    create_unimplemented_device("tim[4]",       0x40000800, 0x400);
-    create_unimplemented_device("sec_tim[4]",   0x50000800, 0x400);
-    create_unimplemented_device("tim[5]",       0x40000C00, 0x400);
-    create_unimplemented_device("sec_tim[5]",   0x50000C00, 0x400);
-    create_unimplemented_device("tim[6]",       0x40001000, 0x400);
-    create_unimplemented_device("sec_tim[6]",   0x50001000, 0x400);
+    //create_unimplemented_device("tim[4]",       0x40000800, 0x400);
+    //create_unimplemented_device("sec_tim[4]",   0x50000800, 0x400);
+    //create_unimplemented_device("tim[5]",       0x40000C00, 0x400);
+    //create_unimplemented_device("sec_tim[5]",   0x50000C00, 0x400);
+    //create_unimplemented_device("tim[6]",       0x40001000, 0x400);
+    //create_unimplemented_device("sec_tim[6]",   0x50001000, 0x400);
     //create_unimplemented_device("tim[7]",       0x40001400, 0x400);
     //create_unimplemented_device("sec_tim[7]",   0x50001400, 0x400);
     create_unimplemented_device("DAC",          0x40007400, 0x400);
