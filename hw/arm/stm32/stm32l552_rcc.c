@@ -558,8 +558,8 @@ static uint32_t stm32_rcc_RCC_CR_read(struct STM32L552RccState *s)
     const bool PLLON = clktree_is_enabled(s->PLLCLK); // clktree_is_enabled(s->PLLCLK);
     const bool HSEON = true; //clktree_is_enabled(s->HSECLK);
     const bool HSION = true; //clktree_is_enabled(s->HSICLK);
-    const bool PLLSAI1ON = true; //clktree_is_enabled(s->PLLI2SCLK);
-    const bool PLLSAI2ON = true; //clktree_is_enabled(s->PLLI2SCLK);
+    const bool PLLSAI1ON = clktree_is_enabled(s->PLLSAI1CLK); //clktree_is_enabled(s->PLLI2SCLK);
+    const bool PLLSAI2ON = clktree_is_enabled(s->PLLSAI2CLK); //clktree_is_enabled(s->PLLI2SCLK);
     const bool PLLRDY = true;
 
 uint32_t new_value =  GET_BIT_MASK(RCC_CR_PLLRDY_BIT, PLLON) |
@@ -603,9 +603,23 @@ uint32_t new_value =  GET_BIT_MASK(RCC_CR_PLLRDY_BIT, PLLON) |
  */
 static void stm32_rcc_RCC_CR_write(struct STM32L552RccState *s, uint32_t new_value, bool init)
 {
-    bool new_PLLON, new_HSEON, new_HSION, new_PLLISON;
+    bool new_PLLON, new_HSEON, new_HSION, new_PLLISON, new_SAI1ON, new_SAI2ON;
     DPRINTF("RCC_CR_write %lu \n",
             (unsigned long)new_value);
+
+    new_SAI1ON = IS_BIT_SET(new_value, RCC_CR_PLLSAI1ON_BIT);
+    if((clktree_is_enabled(s->PLLSAI1CLK) && !new_SAI1ON) &&
+       s->RCC_CFGR_SW == SW_PLL_SELECTED) {
+        printf("PLL cannot be disabled while it is selected as the system clock.");
+    }
+    clktree_set_enabled(s->PLLSAI1CLK, new_SAI1ON);
+
+    new_SAI2ON = IS_BIT_SET(new_value, RCC_CR_PLLSAI2ON_BIT);
+    if((clktree_is_enabled(s->PLLSAI2CLK) && !new_SAI2ON) &&
+       s->RCC_CFGR_SW == SW_PLL_SELECTED) {
+        printf("PLL cannot be disabled while it is selected as the system clock.");
+    }
+    clktree_set_enabled(s->PLLSAI2CLK, new_SAI2ON);
 
 
     new_PLLON = IS_BIT_SET(new_value, RCC_CR_PLLON_BIT);
@@ -812,7 +826,7 @@ static void stm32_rcc_RCC_CFGR_write(struct STM32L552RccState *s, uint32_t new_v
             clktree_set_selected_input(s->SYSCLK, s->RCC_CFGR_SW);
             break;
         default:
-            hw_error("Invalid input selected for SYSCLK");
+            //hw_error("Invalid input selected for SYSCLK");
             break;
     }
 
@@ -1229,6 +1243,10 @@ static void stm32_rcc_init_clk(struct STM32L552RccState *s)
 
     s->PLLI2SM = clktree_create_clk("PLLI2SM", 1, 16, true, CLKTREE_NO_MAX_FREQ, 0, s->PLLM, NULL);
     s->PLLI2SCLK = clktree_create_clk("PLLI2SCLK", 1, 2, false, 120000000, 0, s->PLLI2SM, NULL);
+
+    s->PLLSAI1CLK = clktree_create_clk("PLLISAI1CLK", 1, 2, false, 120000000, 0, s->PLLI2SM, NULL);
+    s->PLLSAI2CLK = clktree_create_clk("PLLISAI2CLK", 1, 2, false, 120000000, 0, s->PLLI2SM, NULL);
+
 
     s->SYSCLK = clktree_create_clk("SYSCLK", 1, 1, true, 168000000, CLKTREE_NO_INPUT,
                                    s->HSICLK, s->HSECLK, s->PLLCLK, NULL);

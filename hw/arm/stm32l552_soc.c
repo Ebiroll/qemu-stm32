@@ -83,6 +83,9 @@ static void stm32l552_soc_initfn(Object *obj)
                                 TYPE_STM32F2XX_TIMER);
     }
 
+    object_initialize_child(obj, "stm32l552-flash", &s->flash_regs, TYPE_STM32_FLASH_REGS);
+
+
     object_initialize_child(obj, "adc", &s->adc, TYPE_STM32L552_ADC);
     //for (i = 0; i < STM_NUM_ADCS; i++) {
     //    object_initialize_child(obj, "adc[*]", &s->adc[i], TYPE_STM32L552_ADC);
@@ -190,6 +193,19 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
 
     memory_region_add_subregion(system_memory, FLASH_BASE_ADDRESS, &s->flash);
     memory_region_add_subregion(system_memory, 0, &s->flash_alias);
+/*
+"FLASH_REG","40022000"
+
+*/
+    /* Flash registers controller */
+    dev = DEVICE(&s->flash_regs);
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->flash_regs), errp)) {
+        return;
+    }
+    busdev = SYS_BUS_DEVICE(dev);
+    sysbus_mmio_map(busdev, 0, 0x40022000);
+
+
 
     memory_region_init_ram(&s->sram, NULL, "STM32L552.sram", SRAM_SIZE,
                            &err);

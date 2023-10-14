@@ -645,7 +645,7 @@ static void stm32_rcc_RCC_CFGR_write(struct stm32f1xx_rcc *s, uint32_t new_value
             clktree_set_selected_input(s->SYSCLK, s->RCC_CFGR_SW);
             break;
         default:
-            hw_error("Invalid input selected for SYSCLK");
+            // hw_error("Invalid input selected for SYSCLK");
             break;
     }
 

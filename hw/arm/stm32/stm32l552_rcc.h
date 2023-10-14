@@ -114,6 +114,8 @@ struct STM32L552RccState {
 
     PLLI2SM, /* Applies "M" division and "N" multiplication factors for PLLI2S */
     PLLI2SCLK,
+    PLLSAI1CLK,
+    PLLSAI2CLK,
     
     HCLK, /* Output from AHB Prescaler */
     PCLK1, /* Output from APB1 Prescaler */
