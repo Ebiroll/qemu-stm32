@@ -29,6 +29,7 @@
 #include "chardev/char-fe.h"
 #include "qom/object.h"
 
+// Common status register   CSR
 #define USART_CR1  0x00
 #define USART_CR2  0x04
 #define USART_CR3  0x08
@@ -38,11 +39,14 @@
 #define USART_RQR  0x18
 #define USART_ISR  0x1C
 #define USART_ICR  0x20
-#define USART_DR   0x24
+// RDR
+#define USART_RDR     0x24
 // TDR
-#define USART_SR     0x28
-#define USART_PRESC   0x2C
+#define USART_DR   0x28
 
+#define USART_PRESC   0x2C
+// FIXME
+#define USART_SR   0x30
 
 
 /*
@@ -55,14 +59,18 @@
 #define USART_SR_TXE  (1 << 7)
 #define USART_SR_TC   (1 << 6)
 #define USART_SR_RXNE (1 << 5)
+// Mute mode
+#define UART_SR_MM    (1 << 13)
 
+#define USART_ISR_RXNE (1 << 5)
 #define USART_ISR_TEACK (1 << 21)
 #define USART_ISR_REACK (1 << 22)
 
 
-#define USART_CR1_UE  (1 << 13)
+#define USART_CR1_UE  (1 << 0)
 #define USART_CR1_RXNEIE  (1 << 5)
 #define USART_CR1_TE  (1 << 3)
+// Receiver eanable
 #define USART_CR1_RE  (1 << 2)
 
 #define TYPE_STM32L552_USART "stm32l552-usart"
@@ -77,6 +85,7 @@ struct STM32L552UsartState {
 
     uint32_t usart_sr;
     uint32_t usart_dr;
+    uint32_t usart_rdr;
      uint32_t usart_isr;
     uint32_t usart_brr;
     uint32_t usart_cr1;

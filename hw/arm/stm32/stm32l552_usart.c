@@ -1,8 +1,7 @@
 /*
  * STM32L552 USART
  *
- * Copyright (c) 2014 Alistair Francis <alistair@alistair23.me>
- *
+ * Copyright (c) 2023 Olof Astrand
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -57,16 +56,18 @@ static void stm32l552_usart_receive(void *opaque, const uint8_t *buf, int size)
 {
     STM32L552UsartState *s = opaque;
 
-    if (!(s->usart_cr1 & USART_CR1_UE && s->usart_cr1 & USART_CR1_RE)) {
+    if (!((s->usart_cr1 & USART_CR1_UE) && (s->usart_cr1 & USART_CR1_RE))) {
         /* USART not enabled - drop the chars */
         DB_PRINT("Dropping the chars\n");
-        return;
+       // return;
     }
 
+    s->usart_rdr = *buf;
     s->usart_dr = *buf;
+    s->usart_isr |= USART_SR_RXNE;
     s->usart_sr |= USART_SR_RXNE;
 
-    if (s->usart_cr1 & USART_CR1_RXNEIE) {
+    if (s->usart_isr & USART_CR1_RXNEIE) {
         qemu_set_irq(s->irq, 1);
     }
 
@@ -80,6 +81,7 @@ static void stm32l552_usart_reset(DeviceState *dev)
     s->usart_sr = USART_SR_RESET;
     s->usart_isr = 0x00C0;
     s->usart_presc = 0x00C0;
+    s->usart_rdr = 0x00000000;
     s->usart_dr = 0x00000000;
     s->usart_brr = 0x00000000;
     s->usart_cr1 = 0x00000000;
@@ -102,6 +104,9 @@ static uint64_t stm32l552_usart_read(void *opaque, hwaddr addr,
     case USART_ISR:
         retvalue = s->usart_isr;
         retvalue = retvalue | USART_ISR_TEACK | USART_ISR_REACK;
+        return retvalue;
+    case USART_RDR:
+        retvalue = s->usart_rdr;
         return retvalue;
     case USART_SR:
         retvalue = s->usart_sr;
