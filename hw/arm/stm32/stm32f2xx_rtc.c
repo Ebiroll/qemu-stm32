@@ -263,6 +263,10 @@ f2xx_rtc_compute_host_to_target_offset(STM32F2XXRtcState *s, int64_t period_ns, 
 #define RTC_ISR_INITF_Msk             (0x1UL << RTC_ISR_INITF_Pos)              /*!< 0x00000040 */
 #define RTC_ISR_INITF                 RTC_ISR_INITF_Msk                        
 
+#define RTC_ISR_WUTF_Pos             (2U)                                     
+#define RTC_ISR_WUTF_Msk             (0x1UL << RTC_ISR_WUTF_Pos)              /*!< 0x00000004 */
+#define RTC_ISR_WUTF                 RTC_ISR_WUTF_Msk
+
 
 static uint64_t
 f2xx_rtc_read(void *arg, hwaddr addr, unsigned int size)
@@ -287,6 +291,18 @@ f2xx_rtc_read(void *arg, hwaddr addr, unsigned int size)
     uint32_t value = s->regs[addr];
     if (addr == R_RTC_ISR) {
         value |= R_RTC_ISR_RSF;
+        // Hack for TSMV2. The RTC Wakeup timer write flag 
+
+        /* Make sure RTC WUTWF flag is reset only when wakeup timer enabled */
+        if ((s->regs[R_RTC_CR] & (0x1UL <<10U)) == 0) {
+            // WUTWF should be set if the wakeup timer is enabled unless s->regs[R_RTC_ISR] & RTC_ISR_INITF
+
+            
+            if (s->regs[R_RTC_ISR] & RTC_ISR_INITF) {
+                //value &= ~RTC_ISR_WUTF_Msk;
+                value |= RTC_ISR_WUTF_Msk;
+            }
+        }
     }
 
     // HACK for Pebble. Clear the "entered standby" bit. If this bit is set, the Pebble
@@ -425,6 +441,7 @@ f2xx_rtc_write(void *arg, hwaddr addr, uint64_t data, unsigned int size)
             DPRINTF("f2xx rtc WUT isr lowered\n");
             qemu_irq_lower(s->wut_irq);
         }
+        s->regs[R_RTC_ISR] = data;
         break;
     case R_RTC_PRER:
         /*

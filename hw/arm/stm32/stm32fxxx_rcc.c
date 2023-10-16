@@ -1,6 +1,7 @@
 /*
  * STM32 Microcontroller RCC (Reset and Clock Control) module
  *
+ * Copyright (C) 2023 Olof Astrand
  * Copyright (C) 2010 Andre Beckus
  * Copyright (c) 2018 Martin Schröder <mkschreder.uk@gmail.com>
  *

@@ -45,7 +45,7 @@ static void stm32f4xx_exti_set_irq(void *opaque, int irq, int level)
 {
     STM32F4xxExtiState *s = opaque;
 
-    trace_stm32f4xx_exti_set_irq(irq, level);
+    //trace_stm32f4xx_exti_set_irq(irq, level);
 
     if (((1 << irq) & s->exti_rtsr) && level) {
         /* Rising Edge */

@@ -65,12 +65,49 @@ static const int timer_irq[] = { 28, 29, 30, 50 };
 static const int spi_irq[] =   { 35, 36, 51, 0, 0, 0 };
 static const int exti_irq[] =  { 6, 7, 8, 9, 10, 23, 23, 23, 23, 23, 40,
                                  40, 40, 40, 40, 40} ;
+void init_m33_features(Object *obj);
 
+void init_m33_features(Object *obj) {
+    ARMCPU *cpu = ARM_CPU(obj);
+    set_feature(&cpu->env, ARM_FEATURE_V8);
+    set_feature(&cpu->env, ARM_FEATURE_M);
+    set_feature(&cpu->env, ARM_FEATURE_M_MAIN);
+    set_feature(&cpu->env, ARM_FEATURE_M_SECURITY);
+    set_feature(&cpu->env, ARM_FEATURE_THUMB_DSP);
+    cpu->midr = 0x410fd213; // r0p3 
+    cpu->pmsav7_dregion = 16;
+    cpu->sau_sregion = 8;
+    cpu->isar.mvfr0 = 0x10110021;
+    cpu->isar.mvfr1 = 0x11000011;
+    cpu->isar.mvfr2 = 0x00000040;
+    cpu->isar.id_pfr0 = 0x00000030;
+    cpu->isar.id_pfr1 = 0x00000210;
+    cpu->isar.id_dfr0 = 0x00200000;
+    cpu->id_afr0 = 0x00000000;
+    cpu->isar.id_mmfr0 = 0x00101F40;
+    cpu->isar.id_mmfr1 = 0x00000000;
+    cpu->isar.id_mmfr2 = 0x01000000;
+    cpu->isar.id_mmfr3 = 0x00000000;
+    cpu->isar.id_isar0 = 0x01101110;
+    cpu->isar.id_isar1 = 0x02212000;
+    cpu->isar.id_isar2 = 0x20232232;
+    cpu->isar.id_isar3 = 0x01111131;
+    cpu->isar.id_isar4 = 0x01310132;
+    cpu->isar.id_isar5 = 0x00000000;
+    cpu->isar.id_isar6 = 0x00000000;
+    cpu->clidr = 0x00000000;
+    cpu->ctr = 0x8000c000;
+}
+
+extern hwaddr bitband_output_addr[2];
 
 static void stm32l552_soc_initfn(Object *obj)
 {
     STM32L552State *s = STM32L552_SOC(obj);
     int i;
+
+
+  bitband_output_addr[1] = 0x50000000;  // OLAS ACHTUNG Fixme 0x50000000
 
     object_initialize_child(obj, "armv7m", &s->armv7m, TYPE_ARMV7M);
 
@@ -89,7 +126,8 @@ static void stm32l552_soc_initfn(Object *obj)
     object_initialize_child(obj, "stm32l552-flash", &s->flash_regs, TYPE_STM32_FLASH_REGS);
 
 
-    object_initialize_child(obj, "adc", &s->adc, TYPE_STM32L552_ADC);
+    object_initialize_child(obj, TYPE_STM32L552_ADC, &s->adc, TYPE_STM32L552_ADC);
+
     //for (i = 0; i < STM_NUM_ADCS; i++) {
     //    object_initialize_child(obj, "adc[*]", &s->adc[i], TYPE_STM32L552_ADC);
 
@@ -207,6 +245,31 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
     }
     busdev = SYS_BUS_DEVICE(dev);
     sysbus_mmio_map(busdev, 0, 0x40022000);
+/// ADC
+    dev = DEVICE(&(s->adc));
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->adc), errp)) {
+        return;
+    }
+    busdev = SYS_BUS_DEVICE(dev);
+    sysbus_mmio_map(busdev, 0, 0x42028000);
+
+
+
+    /* ADC device, the IRQs are ORed together */
+    if (!object_initialize_child_with_props(OBJECT(s), "adc-orirq",
+                                            &s->adc_irqs, sizeof(s->adc_irqs),
+                                            TYPE_OR_IRQ, errp, NULL)) {
+        return;
+    }
+    object_property_set_int(OBJECT(&s->adc_irqs), "num-lines", STM_NUM_ADCS,
+                            &error_abort);
+    if (!qdev_realize(DEVICE(&s->adc_irqs), NULL, errp)) {
+        return;
+    }
+
+    //sysbus_connect_irq(busdev, 0,
+    //                    qdev_get_gpio_in(DEVICE(&s->adc_irqs), i));
+
 
 
 
@@ -237,6 +300,12 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->armv7m), errp)) {
         return;
     }
+
+    init_m33_features(OBJECT(s->armv7m.cpu));
+
+    qdev_connect_gpio_out(DEVICE(&s->adc_irqs), 0,
+                          qdev_get_gpio_in(armv7m, ADC_IRQ));
+
 
     /* System configuration controller */
     dev = DEVICE(&s->syscfg);
@@ -271,31 +340,6 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
         sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(armv7m, timer_irq[i]));
     }
 
-    dev = DEVICE(&(s->adc));
-    if (!sysbus_realize(SYS_BUS_DEVICE(&s->adc), errp)) {
-        return;
-    }
-    busdev = SYS_BUS_DEVICE(dev);
-    sysbus_mmio_map(busdev, 0, 0x42028000);
-
-
-
-    /* ADC device, the IRQs are ORed together */
-    if (!object_initialize_child_with_props(OBJECT(s), "adc-orirq",
-                                            &s->adc_irqs, sizeof(s->adc_irqs),
-                                            TYPE_OR_IRQ, errp, NULL)) {
-        return;
-    }
-    object_property_set_int(OBJECT(&s->adc_irqs), "num-lines", STM_NUM_ADCS,
-                            &error_abort);
-    if (!qdev_realize(DEVICE(&s->adc_irqs), NULL, errp)) {
-        return;
-    }
-    qdev_connect_gpio_out(DEVICE(&s->adc_irqs), 0,
-                          qdev_get_gpio_in(armv7m, ADC_IRQ));
-
-    //sysbus_connect_irq(busdev, 0,
-    //                    qdev_get_gpio_in(DEVICE(&s->adc_irqs), i));
 
     /* SPI devices */
     for (i = 0; i < STM_NUM_SPIS; i++) {

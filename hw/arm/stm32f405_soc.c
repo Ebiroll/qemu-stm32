@@ -79,7 +79,7 @@ static void stm32f405_soc_initfn(Object *obj)
 
 
        qdev_prop_set_uint32(DEVICE(&s->adc[i]), "input9" /* Version */,
-                122);
+                815/2);
 
     }
 
@@ -297,6 +297,7 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
     }
     busdev = SYS_BUS_DEVICE(dev);
     sysbus_mmio_map(busdev, 0, 0x40002800);
+    
 
     // create_unimplemented_device("PWR",         , 0x400);4
     dev = DEVICE(&s->pwr);
@@ -320,6 +321,21 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
     for (i = 0; i < 16; i++) {
         qdev_connect_gpio_out(DEVICE(&s->syscfg), i, qdev_get_gpio_in(dev, i));
     }
+
+
+    // Alarm A
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->rtc), 0, qdev_get_gpio_in(dev, 22));
+    // Alarm B
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->rtc), 1, qdev_get_gpio_in(dev, 22));
+    // Wake up timer
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->rtc), 2, qdev_get_gpio_in(dev, 17));
+
+#define NVIC_RTC_ALARM_IRQ 41
+#define EXTI_LINE_17 17
+
+    sysbus_connect_irq(busdev, EXTI_LINE_17, qdev_get_gpio_in(armv7m, NVIC_RTC_ALARM_IRQ));
+
+     // sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(armv7m, irqnr));
 
     if(gpio_realize_peripheral(&s->armv7m, &s->gpio[0], 0x40020000, 0, errp) < 0) return;
     if(gpio_realize_peripheral(&s->armv7m, &s->gpio[1], 0x40020400, 0, errp) < 0) return;
