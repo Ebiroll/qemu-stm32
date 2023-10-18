@@ -12,11 +12,18 @@ This repo started as a clone from here, https://github.com/rurban/qemu-stm32/tre
 mkdir arm_stm32; cd arm_stm32
 ../qemu-stm32/configure --disable-werror --enable-debug --target-list="arm-softmmu"     --extra-cflags=-DSTM32_UART_NO_BAUD_DELAY
 
+# Available machines 
+-m tsmv2 and -m tsmpro
 
 # To run
-For now we use a hacked version of -machine olimex-stm32-h405
 
- ./arm-softmmu/qemu-system-arm -rtc base=localtime -machine olimex-stm32-h405  -cpu cortex-m4 -S -s   -kernel airsensor.bin  -serial file:uart1.log -serial tcp::12344,server,nowait -serial tcp::12345,server,nowait  -d unimp,guest_errors
+TSMV2
+
+ ./arm-softmmu/qemu-system-arm -rtc base=localtime -machine tsmv2  -S -s   -kernel firmware_230.bin  -serial file:uart1.log -serial tcp::12344,server,nowait -serial tcp::12345,server,nowait  -d unimp,guest_errors
+
+TSMPRO
+
+ ./arm-softmmu/qemu-system-arm -rtc base=localtime -machine tsmpro  -S -s   -kernel firmware_265.bin  -serial file:uart1.log -serial tcp::12344,server,nowait -serial tcp::12345,server,nowait  -d unimp,guest_errors  -monitor stdio -trace "stm32*"
 
 
 arm-none-eabi-gdb build/airsensor_d/firmware/bin/firmware_346.elf  -ex 'target extended-remote 192.168.4.1:2345'
@@ -36,7 +43,7 @@ If you start qemu manually you can use this to launch the debugger
         {
             "name": "Cortex external qemu Debug",
             "cwd": "${workspaceFolder}",
-            "executable": "./build/raw_V2CubeMX.elf",
+            "executable": "./build/airsensor_d/firmware/bin/firmware_230.elf",
             "gdbPath": "/usr/bin/gdb-multiarch",
             "request": "attach",
             "type": "cortex-debug",
