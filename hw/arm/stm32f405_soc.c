@@ -101,6 +101,10 @@ static void stm32f405_soc_initfn(Object *obj)
 
     object_initialize_child(obj, "exti", &s->exti, TYPE_STM32F4XX_EXTI);
 
+    object_initialize_child(obj, "i2c", &s->i2c, TYPE_STM32F4XX_I2C);
+
+    
+
     object_initialize_child(obj, "stm32fxxx-rcc", &s->rcc, TYPE_STM32FXXX_RCC);
     object_initialize_child(obj, "stm32fxxx-rtc", &s->rtc, TYPE_STM32FXXX_RTC);
     object_initialize_child(obj, "stm32fxxx-pwr", &s->pwr, TYPE_STM32FXXX_PWR);
@@ -309,6 +313,26 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
     busdev = SYS_BUS_DEVICE(dev);
     sysbus_mmio_map(busdev, 0, 0x40007000);
 
+    // I2C device
+
+ 
+    dev = DEVICE(&s->i2c);
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->i2c), errp)) {
+        return;
+    }
+    busdev = SYS_BUS_DEVICE(dev);
+    sysbus_mmio_map(busdev, 0, 0x40005400);
+    #define NVIC_I2C1_EV_IRQ 38
+    #define NVIC_I2C1_ERR_IRQ 39
+
+    #define QEMU_I2C1_EV_IRQ 72
+    #define QEMU_I2C1_ERR_IRQ 73
+
+    // I2C
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->i2c), 0, qdev_get_gpio_in(armv7m, QEMU_I2C1_EV_IRQ));
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->i2c), 1, qdev_get_gpio_in(armv7m, QEMU_I2C1_ERR_IRQ));
+
+
 
     /* EXTI device */
     dev = DEVICE(&s->exti);
@@ -325,6 +349,8 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
     }
 
 
+
+
     // Alarm A
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->rtc), 0, qdev_get_gpio_in(dev, 22));
     // Alarm B
@@ -336,6 +362,10 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
 #define EXTI_LINE_17 17
 
     sysbus_connect_irq(busdev, EXTI_LINE_17, qdev_get_gpio_in(armv7m, NVIC_RTC_ALARM_IRQ));
+
+
+
+
 
      // sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(armv7m, irqnr));
 
@@ -362,7 +392,7 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
     create_unimplemented_device("IWDG",        0x40003000, 0x400);
     create_unimplemented_device("I2S2ext",     0x40003000, 0x400);
     create_unimplemented_device("I2S3ext",     0x40004000, 0x400);
-    create_unimplemented_device("I2C1",        0x40005400, 0x400);
+    //create_unimplemented_device("I2C1",        0x40005400, 0x400);
     create_unimplemented_device("I2C2",        0x40005800, 0x400);
     create_unimplemented_device("I2C3",        0x40005C00, 0x400);
     create_unimplemented_device("CAN1",        0x40006400, 0x400);
