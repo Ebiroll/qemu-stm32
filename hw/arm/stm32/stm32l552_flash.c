@@ -39,6 +39,7 @@
 
 #define STM32_FLASH_ADDR_START 0x08000000
 
+#define DEBUG_FLASH 1
 
 static Stm32Flash* flash;
 static uint32_t is_flash_locked = 1;
@@ -466,6 +467,9 @@ type_init(stm32_flash_register_types);
 #define FLASH_CR_EOPIE_Msk                  (0x1U << FLASH_CR_EOPIE_Pos)       /*!< 0x00001000 */
 #define FLASH_CR_EOPIE                      FLASH_CR_EOPIE_Msk                 /*!< End of operation interrupt enable */
 
+
+//#define FLASH_KEY1   0x45670123U /*!< Flash key1 */
+//#define FLASH_KEY2   0xCDEF89ABU /*!< Flash key2: used with FLASH_KEY1
 
 
 #define FLASH_KEY1                          0x45670123U                     /*!< FPEC Key1 */

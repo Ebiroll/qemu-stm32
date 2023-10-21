@@ -106,6 +106,7 @@ typedef struct STM32F2XXRtcState {
 
     uint32_t      regs[R_RTC_MAX];
     int           wp_count; /* Number of correct writes to WP reg */
+    QEMUTimer *wut_delay_timer;
 } f2xx_rtc;
 
 

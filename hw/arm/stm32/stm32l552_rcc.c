@@ -1029,6 +1029,8 @@ static uint64_t stm32_rcc_readw(void *opaque, hwaddr offset)
             return stm32_rcc_RCC_CIR_read(s);
         case RCC_AHB1RSTR_OFFSET:
             return s->RCC_AHB1RSTR;
+        case RCC_CCIPR_OFFSET:
+            return s->RCC_CCIPR;
         case RCC_AHB2RSTR_OFFSET:
             return s->RCC_AHB2RSTR;
         case RCC_AHB3RSTR_OFFSET:
@@ -1088,6 +1090,10 @@ static void stm32_rcc_writew(void *opaque, hwaddr offset,
             break;
         case RCC_AHB3RSTR_OFFSET:
             s->RCC_AHB3RSTR = value;
+            WARN_UNIMPLEMENTED_REG(offset);
+            break;
+        case RCC_CCIPR_OFFSET:
+            s->RCC_CCIPR = value;
             WARN_UNIMPLEMENTED_REG(offset);
             break;
         case RCC_AHB1ENR_OFFSET:

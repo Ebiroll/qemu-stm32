@@ -431,6 +431,18 @@ f2xx_rtc_write(void *arg, hwaddr addr, uint64_t data, unsigned int size)
         if ((data & R_RTC_CR_WUTE) != (s->regs[R_RTC_CR] & R_RTC_CR_WUTE)) {
             update_wut = true;
         }
+        {
+            int64_t delay_ns;
+
+            if (data & 0x03) {
+                // Assuming ck_apre is derived from RTCCLK and has some frequency
+                // Let's say it's some constant CK_APRE_PERIOD_IN_NS for this example
+                delay_ns = 62500 + 62500; // +1 RTCCLK cycle
+            } else {
+                delay_ns = 62500; // Just 1 RTCCLK cycle
+            }
+            timer_mod_ns(s->wut_delay_timer, qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) + delay_ns);
+        }
         break;
     case R_RTC_ISR:
         if ((data & 1<<8) == 0 && (s->regs[R_RTC_ISR] & 1<<8) != 0) {
@@ -657,6 +669,25 @@ static void f2xx_rtc_reset(DeviceState *dev)
     s->regs[R_RTC_CR] = 0;
 }
 
+
+static void wut_delay_callback(void *opaque)
+{
+    STM32F2XXRtcState *s = (STM32F2XXRtcState *)opaque;
+
+    if ((s->regs[R_RTC_CR] & R_RTC_CR_WUTE) == 0) {
+        /* Set WUTWF */
+        s->regs[R_RTC_ISR]  |= RTC_ISR_WUTF_Msk;
+    } else {
+        /* Clear WUTWF */
+
+        s->regs[R_RTC_ISR]  &= ~RTC_ISR_WUTF_Msk;
+    }
+
+    /* Further handling if needed */
+}
+
+
+
 static void
 f2xx_rtc_realize(DeviceState *dev, Error **errp)
 {
@@ -696,6 +727,8 @@ f2xx_rtc_realize(DeviceState *dev, Error **errp)
     timer_mod(s->timer, qemu_clock_get_ns(QEMU_CLOCK_HOST) + period_ns);
 
     s->wu_timer = timer_new_ns(QEMU_CLOCK_REALTIME, f2xx_wu_timer, s);
+
+    s->wut_delay_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, wut_delay_callback, s);
 }
 
 static Property f2xx_rtc_properties[] = {

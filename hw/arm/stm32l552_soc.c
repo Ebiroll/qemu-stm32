@@ -60,7 +60,8 @@ static const uint32_t spi_addr[] =   { 0x40013000, 0x40003800, 0x40003C00 };
 
 #define SYSCFG_IRQ               71
 static const int usart_irq[] = { 61, 62, 63, 64, 53, 71, 82, 83 };
-static const int timer_irq[] = { 28, 29, 30, 50 };
+//static const int timer_irq[] = { 28, 29, 30, 50 };
+static const int timer_irq[] = { 44,45,46,47,48,49,50,51 };
 #define ADC_IRQ 18
 static const int spi_irq[] =   { 35, 36, 51, 0, 0, 0 };
 static const int exti_irq[] =  { 6, 7, 8, 9, 10, 23, 23, 23, 23, 23, 40,
@@ -152,6 +153,7 @@ static void stm32l552_soc_initfn(Object *obj)
 
 
     object_initialize_child(obj, "exti", &s->exti, TYPE_STM32F4XX_EXTI);
+    
 
     object_initialize_child(obj, "stm32l552-rcc", &s->rcc, TYPE_STM32L552_RCC);
     object_initialize_child(obj, "stm32fxxx-rtc", &s->rtc, TYPE_STM32FXXX_RTC);
@@ -222,12 +224,25 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
     clock_set_mul_div(s->refclk, 8, 1);
     clock_set_source(s->refclk, s->sysclk);
 
+// flash_alias
+
     memory_region_init_rom(&s->flash, OBJECT(dev_soc), "STM32L552.flash",
                            FLASH_SIZE, &err);
     if (err != NULL) {
         error_propagate(errp, err);
         return;
     }
+
+
+    uint32_t *flash_data = (uint32_t *)memory_region_get_ram_ptr(&s->flash);
+
+    for (int i = 0; i < FLASH_SIZE / sizeof(uint32_t); i++) {
+        flash_data[i] = 0xFFFFFFFFU;
+    }
+
+    memory_region_set_dirty(&s->flash, 0, FLASH_SIZE);
+    //memory_region_flush_rom_device(&s->flash, 0, FLASH_SIZE);
+    
     memory_region_init_alias(&s->flash_alias, OBJECT(dev_soc),
                              "STM32L552.flash.alias", &s->flash, 0,
                              FLASH_SIZE);
@@ -395,6 +410,20 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
     for (i = 0; i < 16; i++) {
         sysbus_connect_irq(busdev, i, qdev_get_gpio_in(armv7m, exti_irq[i]));
     }
+
+    // Alarm A
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->rtc), 0, qdev_get_gpio_in(dev, 22));
+    // Alarm B
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->rtc), 1, qdev_get_gpio_in(dev, 22));
+    // Wake up timer
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->rtc), 2, qdev_get_gpio_in(dev, 17));
+
+#define NVIC_RTC_ALARM_IRQ 41
+#define EXTI_LINE_17 17
+
+    sysbus_connect_irq(busdev, EXTI_LINE_17, qdev_get_gpio_in(armv7m, NVIC_RTC_ALARM_IRQ));
+
+
     //for (i = 0; i < 16; i++) {
     //    qdev_connect_gpio_out(DEVICE(&s->syscfg), i, qdev_get_gpio_in(dev, i));
     //}
