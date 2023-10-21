@@ -34,7 +34,7 @@
 #include "hw/arm/armv7m.h"
 #include "qom/object.h"
 #include "hw/arm/stm32/stm32l552_rcc.h"
-#include "hw/arm/stm32/stm32f2xx_rtc.h"
+#include "hw/arm/stm32/stm32l552_rtc.h"
 #include "hw/arm/stm32/stm32l552_pwr.h"
 #include "hw/arm/stm32/stm32fxxx_gpio.h"
 #include "hw/arm/stm32/stm32l552_adc.h"
@@ -80,7 +80,7 @@ struct STM32L552State {
     //stm32fxxx_pwr     pwr;
     stm32l552_pwr     pwr;
     STM32L552RccState rcc;
-    STM32F2XXRtcState rtc;
+    STM32L552RtcState rtc;
 
     MemoryRegion ccm;
     MemoryRegion sram;
