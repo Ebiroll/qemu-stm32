@@ -29,6 +29,7 @@
 #include "qemu/log.h"
 #include "qemu/module.h"
 
+//#define STM_USART_ERR_DEBUG 5
 #ifndef STM_USART_ERR_DEBUG
 #define STM_USART_ERR_DEBUG 0
 #endif
@@ -58,16 +59,22 @@ static void stm32l552_usart_receive(void *opaque, const uint8_t *buf, int size)
 
     if (!((s->usart_cr1 & USART_CR1_UE) && (s->usart_cr1 & USART_CR1_RE))) {
         /* USART not enabled - drop the chars */
-        DB_PRINT("Dropping the chars\n");
-       // return;
+        DB_PRINT("Not enabled, Dropping the chars\n");
+       return;
     }
 
     s->usart_rdr = *buf;
     s->usart_dr = *buf;
-    s->usart_isr |= USART_SR_RXNE;
+    s->usart_isr |= USART_ISR_RXNE;
     s->usart_sr |= USART_SR_RXNE;
 
-    if (s->usart_isr & USART_CR1_RXNEIE) {
+    //if (qemu_irq_is_connected(s->irq)) {
+    //    DB_PRINT("IRQ is connected: %d\n", 1);
+    //    qemu_set_irq(s->irq, 1);
+    //}
+
+    if (s->usart_cr2 & USART_CR1_RXNEIE) {
+        DB_PRINT("Setting irq: %d\n", 2);
         qemu_set_irq(s->irq, 1);
     }
 
@@ -190,8 +197,9 @@ static void stm32l552_usart_write(void *opaque, hwaddr addr,
         return;
     case USART_CR1:
         s->usart_cr1 = value;
-            if (s->usart_cr1 & USART_CR1_RXNEIE &&
-                s->usart_sr & USART_SR_RXNE) {
+        //  &&
+        //        s->usart_sr & USART_SR_RXNE
+            if (s->usart_cr1 & USART_CR1_RXNEIE) {
                 qemu_set_irq(s->irq, 1);
             }
         return;

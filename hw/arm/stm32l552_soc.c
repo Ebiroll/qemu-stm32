@@ -191,7 +191,7 @@ static const int timer_irq[] = { 44,45,46,47,48,49,50,51 };
 // TODO SPI3 IRQ is 99!
 static const int spi_irq[] =   { 59,60 ,61, 0, 0 };
 static const int exti_irq[] =  { 11, 12,13,14,15,16,17,18,
-                                 19, 20,21,22,23,24,25,26} ;
+                                 19, 20,21,22,23,24,25,26,27} ;
 
 void init_m33_features(Object *obj);
 
@@ -279,7 +279,7 @@ static void stm32l552_soc_initfn(Object *obj)
     }
 
 
-    object_initialize_child(obj, "exti", &s->exti, TYPE_STM32F4XX_EXTI);
+    object_initialize_child(obj, "exti", &s->exti, TYPE_STM32L552_EXTI);
     
 
     object_initialize_child(obj, "stm32l552-rcc", &s->rcc, TYPE_STM32L552_RCC);
@@ -537,6 +537,9 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
     for (i = 0; i < 16; i++) {
         sysbus_connect_irq(busdev, i, qdev_get_gpio_in(armv7m, exti_irq[i]));
     }
+
+    // sysbus_connect_irq(busdev, 27, qdev_get_gpio_in(armv7m, 62));
+
 
     // Alarm A
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->rtc), 0, qdev_get_gpio_in(dev, 22));

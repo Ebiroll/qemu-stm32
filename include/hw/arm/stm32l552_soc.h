@@ -28,7 +28,7 @@
 #include "hw/arm/stm32/stm32lxxx_syscfg.h"
 #include "hw/timer/stm32f2xx_timer.h"
 #include "hw/arm/stm32/stm32l552_usart.h"
-#include "hw/misc/stm32f4xx_exti.h"
+#include "hw/arm/stm32/stm32l552_exti.h"
 #include "hw/or-irq.h"
 #include "hw/ssi/stm32f2xx_spi.h"
 #include "hw/arm/armv7m.h"
@@ -67,7 +67,7 @@ struct STM32L552State {
     ARMv7MState armv7m;
 
     STM32lxxxSyscfgState syscfg;
-    STM32F4xxExtiState exti;
+    STM32L552ExtiState exti;
     STM32L552UsartState usart[STM32L552_NUM_USARTS];
     STM32F2XXTimerState timer[STM32L552_NUM_TIMERS];
     OrIRQState adc_irqs;
