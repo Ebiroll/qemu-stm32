@@ -244,6 +244,7 @@ do { printf("STM32L552_RCC: " fmt , ## __VA_ARGS__); } while (0)
 #define RCC_BDCR_LSEBYP_BIT        2
 #define RCC_BDCR_LSERDY_BIT        1
 #define RCC_BDCR_LSEON_BIT         0
+#define RCC_BDCR_LSESYSRDY         11
 
 
 #define RCC_CSR_RESET_VALUE       0x0C000000
@@ -978,7 +979,8 @@ static uint32_t stm32_rcc_RCC_BDCR_read(struct STM32L552RccState *s)
     bool lseon = clktree_is_enabled(s->LSECLK);
 
     return GET_BIT_MASK(RCC_BDCR_LSERDY_BIT, lseon) |
-    GET_BIT_MASK(RCC_BDCR_LSEON_BIT, lseon) | 0x100; /* XXX force LSE */
+    GET_BIT_MASK(RCC_BDCR_LSEON_BIT, lseon) |
+    GET_BIT_MASK(RCC_BDCR_LSESYSRDY, lseon) ; /* XXX force LSE */
 }
 
 static void stm32_rcc_RCC_BDCR_writeb0(struct STM32L552RccState *s, uint8_t new_value, bool init)
@@ -1053,6 +1055,9 @@ static uint64_t stm32_rcc_readw(void *opaque, hwaddr offset)
             return stm32_rcc_RCC_BDCR_read(s);
         case RCC_CSR_OFFSET:
             return stm32_rcc_RCC_CSR_read(s);
+        case RCC_CRRCR_OFFSET:
+            return  s->RCC_CRRCR | 0x2;  // Force ready
+
         //case RCC_PLLI2SCFGR_OFFSET:
         //    return stm32_rcc_RCC_PLLI2SCFGR_read(s);
         default:
@@ -1117,6 +1122,9 @@ static void stm32_rcc_writew(void *opaque, hwaddr offset,
             break;
         case RCC_CSR_OFFSET:
             stm32_rcc_RCC_CSR_write(s, value, false);
+            break;
+        case RCC_CRRCR_OFFSET:
+            s->RCC_CRRCR = value;
             break;
         //case RCC_PLLI2SCFGR_OFFSET:
         //    stm32_rcc_RCC_PLLI2SCFGR_write(s, value, false);
