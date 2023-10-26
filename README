@@ -56,3 +56,30 @@ If you start qemu manually you can use this to launch the debugger
             "interface": "tcp",
             "port": 2345
         }
+
+# Launch of binary built with CUBE-IDE
+
+        {
+            "name": "Cortex external qemu Debug",
+            "cwd": "${workspaceFolder}/STM32CubeIDE/Debug",
+            "executable": "${workspaceFolder}/STM32CubeIDE/Debug/FreeRTOS_MPU.elf",
+            "gdbPath": "/usr/bin/gdb-multiarch",
+            "preAttachCommands": [
+                "set substitute-path C:/ /mnt/c/",
+            ],
+            "request": "attach",
+            "type": "cortex-debug",
+            "runToEntryPoint": "main",
+            "runToMain": true,
+            "showDevDebugOutput": "none",
+            "servertype": "qemu",
+            "cpu": "cortex-m33",
+            "machine": "tsmpro",
+            "gdbTarget": "127.0.0.1:1234",
+            "host": "localhost",
+            "interface": "tcp",
+            "port": 2345,
+            "sourceFileMap": {
+                "C:/":"/mnt/c/" 
+            },
+        },    
