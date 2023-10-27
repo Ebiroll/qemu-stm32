@@ -49,7 +49,7 @@ static void stm32f429i_disco_init(MachineState *machine) {
 
     s->soc = qdev_new("stm32f4xx-soc");
     qdev_prop_set_string(s->soc, "cpu-type", ARM_CPU_TYPE_NAME("cortex-m4"));
-    object_property_set_bool(OBJECT(s->soc),  "realized",true, &error_fatal);
+    object_property_set_bool(OBJECT(s->soc), "realized",true, &error_fatal);
 
     // Add the sram
     MemoryRegion *sram = g_new(MemoryRegion, 1);
