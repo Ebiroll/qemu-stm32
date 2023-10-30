@@ -258,6 +258,14 @@ static void stm32l552_soc_initfn(Object *obj)
 
     object_initialize_child(obj, TYPE_STM32L552_ADC, &s->adc, TYPE_STM32L552_ADC);
 
+
+    qdev_prop_set_uint32(DEVICE(&s->adc), "input8" /* Version */,
+            815);
+
+    qdev_prop_set_uint32(DEVICE(&s->adc), "input9" /* Length? */,
+            815);
+
+
     //for (i = 0; i < STM_NUM_ADCS; i++) {
     //    object_initialize_child(obj, "adc[*]", &s->adc[i], TYPE_STM32L552_ADC);
 

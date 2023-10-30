@@ -41,6 +41,9 @@
 
 #define ADC_CR_ADVREGEN                    ((uint32_t) (1<<28))        /*!<ADC Voltage Regulator Enable */
 
+#define ADC_ISR_EOC                        ((uint32_t) (1<<2))        /*!<ADC Voltage Regulator Enable */
+
+
 // ADC_CR_BITS_PROPERTY_RS,
 //             ADC_CR_ADVREGEN);
 
@@ -140,6 +143,10 @@ static uint32_t stm32l552_adc_generate_value(STM32L552ADCState *s,int adc_num)
 
     DB_PRINT("Channel: 0x%d\n", channel);
     s->adc_dr = s->input[channel];
+    if (channel==0) {
+        s->adc_dr = s->input[8];
+        s->adc2_dr = s->input[8];
+    }
 
     DB_PRINT("value: 0x%x\n", s->adc_dr);
     int bits = (s->adc_cr & ADC_CR1_RES) >> 24;
@@ -209,8 +216,8 @@ static uint64_t stm32l552_adc_read(void *opaque, hwaddr addr,
     switch (addr) {
     case ADC_ISR:
     {
-         DB_PRINT("Vaule: 0x%d\n", s->adc_isr);
-        return s->adc_isr;
+        DB_PRINT("Vaule: 0x%d\n", s->adc_isr);
+        return s->adc_isr | ADC_ISR_EOC;
     }
     case ADC_IER:
         return s->adc_ier;
@@ -239,7 +246,7 @@ static uint64_t stm32l552_adc_read(void *opaque, hwaddr addr,
     case ADC_SQR4:
         return s->adc_sqr4;
     case ADC_DR:
-        if ((s->adc_cr & ADC_CR_ADEN) && (s->adc_cr & ADC_CR_ADSTART)) {
+        if ((s->adc_cr & ADC_CR_ADEN) ) {  // && (s->adc_cr & ADC_CR_ADSTART)
             s->adc_cr ^= ADC_CR_ADSTART;
             return stm32l552_adc_generate_value(s,1);
         } else {
@@ -273,7 +280,7 @@ static uint64_t stm32l552_adc_read(void *opaque, hwaddr addr,
         return s->adc_calfact;
 
     case ADC2_ISR:
-        return s->adc2_isr;
+        return s->adc2_isr | ADC_ISR_EOC;
     case ADC2_IER:
         return s->adc2_ier;
     case ADC2_CR:
@@ -301,7 +308,7 @@ static uint64_t stm32l552_adc_read(void *opaque, hwaddr addr,
     case ADC2_SQR4:
         return s->adc2_sqr4;
     case ADC2_DR:
-        if ((s->adc2_cr & ADC_CR_ADEN) && (s->adc2_cr & ADC_CR_ADSTART)) {
+        if ((s->adc2_cr & ADC_CR_ADEN) ) { // && (s->adc2_cr & ADC_CR_ADSTART)
             s->adc2_cr ^= ADC_CR_ADSTART;
             return stm32l552_adc_generate_value(s,2);
         } else {
@@ -584,6 +591,7 @@ static Property adc_properties[] = {
     DEFINE_PROP_UINT32("input9", STM32L552ADCState, reset_input[9], 0xd0),
     DEFINE_PROP_END_OF_LIST(),
 };
+
 
 static void stm32l552_adc_init(Object *obj)
 {
