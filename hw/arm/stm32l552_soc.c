@@ -32,6 +32,9 @@
 #include "hw/arm/stm32/stm32l552_rtc.h"
 #include "hw/qdev-core.h"
 #include "hw/arm/stm32/stm32lxxx_syscfg.h"
+#include "hw/arm/stm32/nn1002.h"
+#include "hw/ssi/ssi.h"
+
 
 #if 0
 {
@@ -277,6 +280,22 @@ static void stm32l552_soc_initfn(Object *obj)
 
     for (i = 0; i < STM_NUM_SPIS; i++) {
         object_initialize_child(obj, "spi[*]", &s->spi[i], TYPE_STM32F2XX_SPI);
+
+    if (1==1) {
+          void *bus;
+
+
+        bus = qdev_get_child_bus(DEVICE(&s->spi[i]), "ssi");
+        object_initialize_child(OBJECT(bus), "nnasic", &s->asic1[i], TYPE_NN1002);
+        //qdev_prop_set_uint8(&s->asic1, "input1" /* Test */,
+        //                    47);
+        // s->spi[i].ssi = s->asic1;
+
+
+    }
+
+
+
     }
     #define NAME_SIZE 32
     char name[NAME_SIZE];
@@ -532,6 +551,19 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
         busdev = SYS_BUS_DEVICE(dev);
         sysbus_mmio_map(busdev, 0, spi_addr[i]);
         sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(armv7m, spi_irq[i]));
+
+        if (1==1) {        
+            BusState* bus;
+            // bus=qdev_get_child_bus(DEVICE(h3), "ssi");
+            bus = qdev_get_child_bus(DEVICE(&s->spi[i]), "ssi");
+                                 // 
+             if (!qdev_realize(DEVICE(&s->asic1[i]), bus, errp)) {
+                return;
+            }
+            // ssi
+            // s->asic1   = ssi_create_peripheral(s->spi[i].ssi ,TYPE_NN1002);
+        }
+
     }
     // create_unimplemented_device("RCC",         0x40023800, 0x400);
     /* RCC Device*/
