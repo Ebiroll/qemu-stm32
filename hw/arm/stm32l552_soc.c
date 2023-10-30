@@ -200,8 +200,9 @@ void init_m33_features(Object *obj) {
     set_feature(&cpu->env, ARM_FEATURE_V8);
     set_feature(&cpu->env, ARM_FEATURE_M);
     set_feature(&cpu->env, ARM_FEATURE_M_MAIN);
-    set_feature(&cpu->env, ARM_FEATURE_M_SECURITY);
+    unset_feature(&cpu->env, ARM_FEATURE_M_SECURITY);
     set_feature(&cpu->env, ARM_FEATURE_THUMB_DSP);
+    //set_feature(&cpu->env,ARM_FEATURE_V8_1M);
     cpu->midr = 0x410fd213; // r0p3 
     cpu->pmsav7_dregion = 16;
     cpu->sau_sregion = 8;
@@ -225,6 +226,7 @@ void init_m33_features(Object *obj) {
     cpu->isar.id_isar6 = 0x00000000;
     cpu->clidr = 0x00000000;
     cpu->ctr = 0x8000c000;
+    cpu->env.v7m.secure = false;
 }
 
 extern hwaddr bitband_output_addr[2];
@@ -315,6 +317,28 @@ static int gpio_realize_peripheral(ARMv7MState *cpu, stm32fxxx_gpio *dev, hwaddr
 
     return 0;
 }
+
+static void stm32l552_soc_reset(DeviceState *dev)
+ {
+    STM32L552State *s = STM32L552_SOC(dev);
+    /* Failed attempt to set truszone SCB registers 
+       by looking at them in the debugger */
+    s->armv7m.cpu->env.v7m.secure = s->armv7m.cpu->env.v7m.secure;
+    s->armv7m.cpu->env.v7m.aircr = R_V7M_AIRCR_BFHFNMINS_MASK;
+    s->armv7m.cpu->env.v7m.nsacr = 0xcff;
+    CPUARMState *env = &s->armv7m.cpu->env;
+    env->v7m.fpccr[M_REG_S]=env->v7m.fpccr[M_REG_S];
+    env->sau.ctrl=0;
+    env->sau.rbar[M_REG_NS]=0;
+    s->armv7m.cpu->sau_sregion=0;
+    env->sau.rlar[M_REG_NS]=0;
+    env->v7m.ccr[M_REG_NS]=0;
+    env->v7m.ccr[M_REG_S]=0x211;
+    env->v7m.aircr=0x0fa05200;
+
+
+ }
+
 
 static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
 {
@@ -554,6 +578,23 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
     sysbus_connect_irq(busdev, EXTI_LINE_17, qdev_get_gpio_in(armv7m, NVIC_RTC_ALARM_IRQ));
 
 
+    s->armv7m.cpu->env.v7m.secure = false;
+    CPUARMState *env = &s->armv7m.cpu->env;
+    env->v7m.secure = false;
+    env->v7m.fpccr[M_REG_S]=env->v7m.fpccr[M_REG_S];
+    env->sau.ctrl=0;
+    env->sau.rbar[M_REG_NS]=0;
+    s->armv7m.cpu->sau_sregion=0;
+    env->sau.rlar[M_REG_NS]=0;
+    env->v7m.ccr[M_REG_NS]=0;
+    env->v7m.ccr[M_REG_S]=0x211;
+    env->v7m.aircr=0x0fa05200;
+
+
+
+
+    //qdev_prop_set_bit(DEVICE(&s->armv7m.cpu->env), "secure", false);
+
     //for (i = 0; i < 16; i++) {
     //    qdev_connect_gpio_out(DEVICE(&s->syscfg), i, qdev_get_gpio_in(dev, i));
     //}
@@ -696,6 +737,8 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
     //create_unimplemented_device("NVIC",     0xE000E100, 0x37D);
     create_unimplemented_device("NVIC_STIR", 0xE000EF00, 0x400);
 
+    create_unimplemented_device("NVIC_SCB", 0xE000ED00, 0x100);
+
     //create_unimplemented_device("FMC",     0x44020000, 0x400);
     create_unimplemented_device("SEC_FMC", 0x54020000, 0x400);
 
@@ -759,6 +802,7 @@ static void stm32l552_soc_class_init(ObjectClass *klass, void *data)
 
     dc->realize = stm32l552_soc_realize;
     device_class_set_props(dc, stm32l552_soc_properties);
+    dc->reset = stm32l552_soc_reset;
     /* No vmstate or reset required: device has no internal state */
 }
 
