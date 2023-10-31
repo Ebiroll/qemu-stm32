@@ -32,7 +32,7 @@
 #include "hw/arm/stm32/stm32l552_rtc.h"
 #include "hw/qdev-core.h"
 #include "hw/arm/stm32/stm32lxxx_syscfg.h"
-#include "hw/arm/stm32/nn1002.h"
+#include "hw/arm/asic_sim/nn1002.h"
 #include "hw/ssi/ssi.h"
 
 
