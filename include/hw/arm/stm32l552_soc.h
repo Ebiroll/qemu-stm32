@@ -39,7 +39,7 @@
 #include "hw/arm/stm32/stm32fxxx_gpio.h"
 #include "hw/arm/stm32/stm32l552_adc.h"
 #include "hw/arm/stm32/stm32l552_flash.h"
-#include "hw/arm/stm32/nn1002.h"
+#include "hw/arm/asic_sim/nn1002.h"
 
 #define TYPE_STM32L552_SOC "stm32l552-soc"
 OBJECT_DECLARE_SIMPLE_TYPE(STM32L552State, STM32L552_SOC)
