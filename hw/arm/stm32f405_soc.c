@@ -511,11 +511,11 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
 
 
     qdev_connect_gpio_out(DEVICE(&s->gpio[1]), 9,  // PB9
-                        qdev_get_gpio_in_named(DEVICE(&s->asic[0]), "cs", 0));
+                        qdev_get_gpio_in_named(DEVICE(&s->asic[1]), "cs", 0));
 
 
     qdev_connect_gpio_out(DEVICE(&s->gpio[1]), 10,  // PB10
-                        qdev_get_gpio_in_named(DEVICE(&s->asic[0]), "cs", 0));
+                        qdev_get_gpio_in_named(DEVICE(&s->asic[2]), "cs", 0));
 
 
     create_unimplemented_device("timer[7]",    0x40001400, 0x400);
