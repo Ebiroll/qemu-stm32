@@ -30,6 +30,7 @@
 #include "qemu/log.h"
 #include "qemu/module.h"
 
+//#define STM_TIMER_ERR_DEBUG 5
 #ifndef STM_TIMER_ERR_DEBUG
 #define STM_TIMER_ERR_DEBUG 0
 #endif

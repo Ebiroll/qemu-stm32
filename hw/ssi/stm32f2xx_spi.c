@@ -29,7 +29,7 @@
 #include "migration/vmstate.h"
 
 #ifndef STM_SPI_ERR_DEBUG
-#define STM_SPI_ERR_DEBUG 0
+#define STM_SPI_ERR_DEBUG 5
 #endif
 
 #define DB_PRINT_L(lvl, fmt, args...) do { \
@@ -58,8 +58,12 @@ static void stm32f2xx_spi_reset(DeviceState *dev)
 static void stm32f2xx_spi_transfer(STM32F2XXSPIState *s)
 {
     DB_PRINT("Data to send: 0x%x\n", s->spi_dr);
+    // uint32_t rx_buffer[32];
+    // uint32_t rx_buffer_pos;
 
-    s->spi_dr = ssi_transfer(s->ssi, s->spi_dr);
+
+    s->rx_buffer[s->rx_buffer_pos] = ssi_transfer(s->ssi, s->spi_dr);
+    s->rx_buffer_pos++;
     s->spi_sr |= STM_SPI_SR_RXNE;
 
     DB_PRINT("Data received: 0x%x\n", s->spi_dr);
@@ -85,6 +89,13 @@ static uint64_t stm32f2xx_spi_read(void *opaque, hwaddr addr,
         // Only transfer
         //stm32f2xx_spi_transfer(s);
         s->spi_sr &= ~STM_SPI_SR_RXNE;
+        s->spi_dr=s->rx_buffer[s->read_buffer_pos];
+        if (s->read_buffer_pos<s->rx_buffer_pos) {
+            s->read_buffer_pos++;
+        } else {
+            s->read_buffer_pos=0;
+            s->rx_buffer_pos=0;
+        }
         return s->spi_dr;
     case STM_SPI_CRCPR:
         qemu_log_mask(LOG_UNIMP, "%s: CRC is not implemented, the registers " \
@@ -129,6 +140,8 @@ static void stm32f2xx_spi_write(void *opaque, hwaddr addr,
     case STM_SPI_CR2:
         qemu_log_mask(LOG_UNIMP, "%s: " \
                       "Interrupts and DMA are not implemented\n", __func__);
+        s->read_buffer_pos=0;
+        s->rx_buffer_pos=0;
         s->spi_cr2 = value;
         return;
     case STM_SPI_SR:

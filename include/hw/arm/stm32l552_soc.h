@@ -78,7 +78,7 @@ struct STM32L552State {
     STM32F2XXSPIState spi[STM_NUM_SPIS];
     stm32fxxx_gpio gpio[STM_NUM_GPIO];
 
-    NN1002State   asic1[STM_NUM_SPIS];
+    NN1002State   asic[STM_NUM_SPIS];
     //DeviceState *asic1;
 
     //stm32fxxx_pwr     pwr;

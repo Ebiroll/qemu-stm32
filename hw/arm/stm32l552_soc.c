@@ -286,14 +286,19 @@ static void stm32l552_soc_initfn(Object *obj)
 
 
         bus = qdev_get_child_bus(DEVICE(&s->spi[i]), "ssi");
-        object_initialize_child(OBJECT(bus), "nnasic", &s->asic1[i], TYPE_NN1002);
-        //qdev_prop_set_uint8(&s->asic1, "input1" /* Test */,
+        object_initialize_child(OBJECT(bus), "nnasic", &s->asic[i], TYPE_NN1002);
+        //qdev_prop_set_uint8(&s->asic, "input1" /* Test */,
         //                    47);
-        // s->spi[i].ssi = s->asic1;
+        // s->spi[i].ssi = s->asic;
 
 
     }
 
+    //qdev_connect_gpio_out(sms->mpu->gpio, SPITZ_GPIO_MAX1111_CS,
+    //                    qdev_get_gpio_in(sms->mux, 2));
+
+
+ 
 
 
     }
@@ -303,9 +308,21 @@ static void stm32l552_soc_initfn(Object *obj)
     for (i = 0; i < STM_NUM_GPIO; i++) {
         snprintf(name, NAME_SIZE, "GPIO%c", 'A' + i);
         object_initialize_child(obj, name, &s->gpio[i], TYPE_STM32FXXX_GPIO);
-        //qdev_prop_set_uint8(DEVICE(s->gpio[i]), "port_id", i);
+        s->gpio[i].port_id = i;
+        //qdev_prop_set_uint8(DEVICE(&s->gpio[i]), "port_id", i);
         //qdev_prop_set_ptr(DEVICE(s->gpio[i]), "state", &s->state);
+
+//        qdev_connect_gpio_out(DEVICE(&s->gpio[i]), 4,  // PA4
+//                            qdev_get_gpio_in_named(DEVICE(&s->asic[0]), "cs", 0));
+
+
     }
+
+//    qdev_connect_gpio_out(DEVICE(&s->gpio[0]), 4,  // PA4
+//                    qdev_get_gpio_in_named(DEVICE(&s->asic[0]), "cs", 0));
+
+//    qdev_connect_gpio_out(DEVICE(&s->gpio[1]), 12,  // PB12
+//                    qdev_get_gpio_in_named(DEVICE(&s->asic[1]), "cs", 0));
 
 
     object_initialize_child(obj, "exti", &s->exti, TYPE_STM32L552_EXTI);
@@ -557,14 +574,18 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
             // bus=qdev_get_child_bus(DEVICE(h3), "ssi");
             bus = qdev_get_child_bus(DEVICE(&s->spi[i]), "ssi");
                                  // 
-             if (!qdev_realize(DEVICE(&s->asic1[i]), bus, errp)) {
+             if (!qdev_realize(DEVICE(&s->asic[i]), bus, errp)) {
                 return;
             }
+
+            
             // ssi
             // s->asic1   = ssi_create_peripheral(s->spi[i].ssi ,TYPE_NN1002);
         }
 
     }
+
+
     // create_unimplemented_device("RCC",         0x40023800, 0x400);
     /* RCC Device*/
     dev = DEVICE(&s->rcc);
@@ -647,7 +668,18 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
     if(gpio_realize_peripheral(&s->armv7m, &s->gpio[5], 0x42021400, 0, errp) < 0) return;
     if(gpio_realize_peripheral(&s->armv7m, &s->gpio[6], 0x42021800, 0, errp) < 0) return;
     if(gpio_realize_peripheral(&s->armv7m, &s->gpio[7], 0x42021C00, 0, errp) < 0) return;
+   
 
+
+    for (i = 0; i < STM_NUM_GPIO; i++) {
+        //qdev_prop_set_uint8(DEVICE(&s->gpio[i]), "port_id", i);
+        //qdev_prop_set_ptr(DEVICE(s->gpio[i]), "state", &s->state);
+        s->gpio[i].port_id = i;
+
+        qdev_connect_gpio_out(DEVICE(&s->gpio[i]), 4,  // PA4
+                            qdev_get_gpio_in_named(DEVICE(&s->asic[0]), "cs", 0));
+
+    }
 
 
 /*

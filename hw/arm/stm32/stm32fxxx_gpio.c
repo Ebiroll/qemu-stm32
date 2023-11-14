@@ -26,7 +26,7 @@
 #include "stm32fxxx_gpio.h"
 #include "hw/qdev-core.h"
 #include "hw/qdev-properties.h"
-
+#include "hw/irq.h"
 
 static uint64_t stm32fxxx_gpio_read(void *opaque, hwaddr addr, unsigned int size){
     struct stm32fxxx_gpio *self = (struct stm32fxxx_gpio*)opaque;
@@ -144,9 +144,17 @@ static void stm32fxxx_gpio_write(void *opaque, hwaddr addr, uint64_t val64, unsi
                 if(set && reset) {
                     GPIO_ERROR("GPIO%c P%c%d: BS and BR both set\n", 'A' + self->port_id, 'A' + self->port_id, c);
                 } else if(set){
+                    if (self->GPIO.ODR!=(self->GPIO.ODR | (1 << c))) {
+                      GPIO_TRACE("GPIO%c P%c%d: write value 1\n", 'A' + self->port_id, 'A' + self->port_id, c);
+                      qemu_irq_raise(self->pins[c]);
+                    }
                     self->GPIO.ODR |= (1 << c);
                     //GPIO_TRACE("GPIO%c P%c%d: write value 1\n", 'A' + self->port_id, 'A' + self->port_id, c);
                 } else if(reset) {
+                    if (self->GPIO.ODR!=(self->GPIO.ODR & ~(1 << c))) {
+                      GPIO_TRACE("GPIO%c P%c%d: write value 0\n", 'A' + self->port_id, 'A' + self->port_id, c);
+                      qemu_irq_lower(self->pins[c]);
+                    }
                     self->GPIO.ODR &= ~(1 << c);
                     //GPIO_TRACE("GPIO%c P%c%d: write value 0\n", 'A' + self->port_id, 'A' + self->port_id, c);
                 } else {
@@ -177,6 +185,27 @@ static void stm32fxxx_gpio_write(void *opaque, hwaddr addr, uint64_t val64, unsi
             }
             self->GPIO.AFRH = val;
         } break;
+        case 0x28: {
+            // Bit reset register
+            // val
+            for(int c = 0; c < 16; c++){
+                //bool set = (val >> c) & 1;
+                //bool reset = (val >> (16 + c)) & 1;
+                if (self->port_id==2) {
+                    qemu_irq_raise(self->pins[c]);
+                    printf("GPIO%c BRR(2) %08x\n", 'A' + self->port_id, (int)c);
+                }
+                if (self->port_id==1) {
+                    //if (reset)
+                    //    qemu_irq_raise(self->pins[c]);
+
+                    //if (set)
+                    qemu_irq_lower(self->pins[c]);
+
+                    printf("GPIO%c BRR(1) %08x\n", 'A' + self->port_id, (int)c);
+                }
+            }
+        } break;
         default: 
             printf("GPIO%c write %08x\n", 'A' + self->port_id, (int)addr);
     }
@@ -194,6 +223,11 @@ static void stm32fxxx_gpio_init(Object *obj){
     memory_region_init_io(&self->mmio, obj, &stm32fxxx_gpio_ops, self, TYPE_STM32FXXX_GPIO, 0x3FF);
     sysbus_init_mmio(SYS_BUS_DEVICE(obj), &self->mmio);
 }
+
+//static void anon_gpio_out_set(void *opaque, int num, int level)
+//{
+    //stm32fxxx_gpio *s = opaque;
+//}
 
 static void stm32fxxx_gpio_realize(DeviceState *dev, Error **errp){
     struct stm32fxxx_gpio *self = OBJECT_CHECK(struct stm32fxxx_gpio, dev, TYPE_STM32FXXX_GPIO);
@@ -217,6 +251,9 @@ static void stm32fxxx_gpio_realize(DeviceState *dev, Error **errp){
     self->GPIO.LCKR = 0;
     self->GPIO.AFRL = 0;
     self->GPIO.AFRH = 0;
+
+    qdev_init_gpio_out(DEVICE(self),(qemu_irq *) &(self->pins),16);
+
 }
 
 static void stm32fxxx_gpio_reset(DeviceState *dev){
