@@ -39,6 +39,7 @@
 #include "hw/arm/stm32/stm32fxxx_pwr.h"
 #include "hw/arm/stm32/stm32fxxx_gpio.h"
 #include "hw/arm/stm32/stm32f4xx_i2c.h"
+#include "hw/arm/asic_sim/nn1002.h"
 
 #define TYPE_STM32F405_SOC "stm32f405-soc"
 OBJECT_DECLARE_SIMPLE_TYPE(STM32F405State, STM32F405_SOC)
@@ -74,6 +75,8 @@ struct STM32F405State {
     STM32F2XXSPIState spi[STM_NUM_SPIS];
     stm32fxxx_gpio gpio[STM_NUM_GPIO];
     STM32F4XXI2cState i2c;
+
+    NN1002State   asic[3];
 
     stm32fxxx_pwr     pwr;
     STM32FXXXRccState rcc;

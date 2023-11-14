@@ -312,10 +312,6 @@ static void stm32l552_soc_initfn(Object *obj)
         //qdev_prop_set_uint8(DEVICE(&s->gpio[i]), "port_id", i);
         //qdev_prop_set_ptr(DEVICE(s->gpio[i]), "state", &s->state);
 
-//        qdev_connect_gpio_out(DEVICE(&s->gpio[i]), 4,  // PA4
-//                            qdev_get_gpio_in_named(DEVICE(&s->asic[0]), "cs", 0));
-
-
     }
 
 

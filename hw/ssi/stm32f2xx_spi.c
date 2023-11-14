@@ -55,15 +55,21 @@ static void stm32f2xx_spi_reset(DeviceState *dev)
     s->spi_i2spr = 0x00000002;
 }
 
-static void stm32f2xx_spi_transfer(STM32F2XXSPIState *s)
+static void stm32f2xx_spi_transfer(STM32F2XXSPIState *s, int size)
 {
     DB_PRINT("Data to send: 0x%x\n", s->spi_dr);
-    // uint32_t rx_buffer[32];
-    // uint32_t rx_buffer_pos;
+    if (size==1) {
+        s->rx_buffer[s->rx_buffer_pos] = ssi_transfer(s->ssi, s->spi_dr);
+        s->rx_buffer_pos++;
+    }
+    if (size==4) {
+        s->rx_buffer[s->rx_buffer_pos] = ssi_transfer(s->ssi, s->spi_dr & 0xFF);
+        s->rx_buffer_pos++;
 
+        s->rx_buffer[s->rx_buffer_pos] = ssi_transfer(s->ssi, (s->spi_dr & 0xFF00) >> 8);
+        s->rx_buffer_pos++;
+    }
 
-    s->rx_buffer[s->rx_buffer_pos] = ssi_transfer(s->ssi, s->spi_dr);
-    s->rx_buffer_pos++;
     s->spi_sr |= STM_SPI_SR_RXNE;
 
     DB_PRINT("Data received: 0x%x\n", s->spi_dr);
@@ -89,12 +95,25 @@ static uint64_t stm32f2xx_spi_read(void *opaque, hwaddr addr,
         // Only transfer
         //stm32f2xx_spi_transfer(s);
         s->spi_sr &= ~STM_SPI_SR_RXNE;
-        s->spi_dr=s->rx_buffer[s->read_buffer_pos];
-        if (s->read_buffer_pos<s->rx_buffer_pos) {
-            s->read_buffer_pos++;
-        } else {
-            s->read_buffer_pos=0;
-            s->rx_buffer_pos=0;
+        if (size==4) {
+            s->spi_dr=s->rx_buffer[s->read_buffer_pos] | (s->rx_buffer[s->read_buffer_pos+1] << 8);
+            if (s->read_buffer_pos<s->rx_buffer_pos) {
+                s->read_buffer_pos++;
+                s->read_buffer_pos++;
+            } else {
+                s->read_buffer_pos=0;
+                s->rx_buffer_pos=0;
+            }
+
+        } else  {
+            s->spi_dr=s->rx_buffer[s->read_buffer_pos];
+            if (s->read_buffer_pos<s->rx_buffer_pos) {
+                s->read_buffer_pos++;
+            } else {
+                s->read_buffer_pos=0;
+                s->rx_buffer_pos=0;
+            }
+
         }
         return s->spi_dr;
     case STM_SPI_CRCPR:
@@ -151,7 +170,7 @@ static void stm32f2xx_spi_write(void *opaque, hwaddr addr,
         return;
     case STM_SPI_DR:
         s->spi_dr = value;
-        stm32f2xx_spi_transfer(s);
+        stm32f2xx_spi_transfer(s,size);
         return;
     case STM_SPI_CRCPR:
         qemu_log_mask(LOG_UNIMP, "%s: CRC is not implemented\n", __func__);

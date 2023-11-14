@@ -182,7 +182,12 @@ static void stm32f405_soc_initfn(Object *obj)
     }
 
     for (i = 0; i < STM_NUM_SPIS; i++) {
+        void *bus;
         object_initialize_child(obj, "spi[*]", &s->spi[i], TYPE_STM32F2XX_SPI);
+        bus = qdev_get_child_bus(DEVICE(&s->spi[i]), "ssi");
+        if (i<3) {
+            object_initialize_child(OBJECT(bus), "nnasic", &s->asic[i], TYPE_NN1002);
+        }
     }
     #define NAME_SIZE 32
     char name[NAME_SIZE];
@@ -193,6 +198,10 @@ static void stm32f405_soc_initfn(Object *obj)
         //qdev_prop_set_uint8(DEVICE(s->gpio[i]), "port_id", i);
         //qdev_prop_set_ptr(DEVICE(s->gpio[i]), "state", &s->state);
     }
+
+
+
+
 
 
     object_initialize_child(obj, "exti", &s->exti, TYPE_STM32F4XX_EXTI);
@@ -381,6 +390,17 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
         busdev = SYS_BUS_DEVICE(dev);
         sysbus_mmio_map(busdev, 0, spi_addr[i]);
         sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(armv7m, spi_irq[i]));
+
+        if (i<3) {        
+            BusState* bus;
+            // bus=qdev_get_child_bus(DEVICE(h3), "ssi");
+            bus = qdev_get_child_bus(DEVICE(&s->spi[i]), "ssi");
+                                 // 
+             if (!qdev_realize(DEVICE(&s->asic[i]), bus, errp)) {
+                return;
+            }
+        }
+
     }
     // create_unimplemented_device("RCC",         0x40023800, 0x400);
     /* RCC Device*/
@@ -476,6 +496,26 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
     //if(stm32_realize_peripheral(&s->armv7m, s->gpio[8], 0x40022000, 0, errp) < 0) return;
     //if(stm32_realize_peripheral(&s->armv7m, s->gpio[9], 0x40022400, 0, errp) < 0) return;
     //if(stm32_realize_peripheral(&s->armv7m, s->gpio[10], 0x40022800, 0, errp) < 0) return;
+
+
+    
+    for (i = 0; i < 5; i++) {
+        //qdev_prop_set_uint8(DEVICE(&s->gpio[i]), "port_id", i);
+        //qdev_prop_set_ptr(DEVICE(s->gpio[i]), "state", &s->state);
+        s->gpio[i].port_id = i;
+
+    }
+
+    qdev_connect_gpio_out(DEVICE(&s->gpio[1]), 8,  // PB8
+                        qdev_get_gpio_in_named(DEVICE(&s->asic[0]), "cs", 0));
+
+
+    qdev_connect_gpio_out(DEVICE(&s->gpio[1]), 9,  // PB9
+                        qdev_get_gpio_in_named(DEVICE(&s->asic[0]), "cs", 0));
+
+
+    qdev_connect_gpio_out(DEVICE(&s->gpio[1]), 10,  // PB10
+                        qdev_get_gpio_in_named(DEVICE(&s->asic[0]), "cs", 0));
 
 
     create_unimplemented_device("timer[7]",    0x40001400, 0x400);
