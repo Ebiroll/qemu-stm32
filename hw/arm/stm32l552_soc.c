@@ -318,12 +318,6 @@ static void stm32l552_soc_initfn(Object *obj)
 
     }
 
-//    qdev_connect_gpio_out(DEVICE(&s->gpio[0]), 4,  // PA4
-//                    qdev_get_gpio_in_named(DEVICE(&s->asic[0]), "cs", 0));
-
-//    qdev_connect_gpio_out(DEVICE(&s->gpio[1]), 12,  // PB12
-//                    qdev_get_gpio_in_named(DEVICE(&s->asic[1]), "cs", 0));
-
 
     object_initialize_child(obj, "exti", &s->exti, TYPE_STM32L552_EXTI);
     
@@ -676,10 +670,14 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
         //qdev_prop_set_ptr(DEVICE(s->gpio[i]), "state", &s->state);
         s->gpio[i].port_id = i;
 
-        qdev_connect_gpio_out(DEVICE(&s->gpio[i]), 4,  // PA4
-                            qdev_get_gpio_in_named(DEVICE(&s->asic[0]), "cs", 0));
-
     }
+
+    qdev_connect_gpio_out(DEVICE(&s->gpio[0]), 4,  // PA4
+                        qdev_get_gpio_in_named(DEVICE(&s->asic[0]), "cs", 0));
+
+
+    qdev_connect_gpio_out(DEVICE(&s->gpio[1]), 12,  // PB12
+                        qdev_get_gpio_in_named(DEVICE(&s->asic[1]), "cs", 0));
 
 
 /*

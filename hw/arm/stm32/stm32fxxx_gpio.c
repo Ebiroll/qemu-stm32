@@ -145,16 +145,16 @@ static void stm32fxxx_gpio_write(void *opaque, hwaddr addr, uint64_t val64, unsi
                     GPIO_ERROR("GPIO%c P%c%d: BS and BR both set\n", 'A' + self->port_id, 'A' + self->port_id, c);
                 } else if(set){
                     if (self->GPIO.ODR!=(self->GPIO.ODR | (1 << c))) {
-                      GPIO_TRACE("GPIO%c P%c%d: write value 1\n", 'A' + self->port_id, 'A' + self->port_id, c);
-                      qemu_irq_raise(self->pins[c]);
+                      GPIO_TRACE("GPIO%c P%c%d: write value 1\n", 'A' + self->port_id, 'A' + self->port_id, c);                      
                     }
+                    qemu_irq_raise(self->pins[c]);
                     self->GPIO.ODR |= (1 << c);
                     //GPIO_TRACE("GPIO%c P%c%d: write value 1\n", 'A' + self->port_id, 'A' + self->port_id, c);
                 } else if(reset) {
                     if (self->GPIO.ODR!=(self->GPIO.ODR & ~(1 << c))) {
-                      GPIO_TRACE("GPIO%c P%c%d: write value 0\n", 'A' + self->port_id, 'A' + self->port_id, c);
-                      qemu_irq_lower(self->pins[c]);
+                      GPIO_TRACE("GPIO%c P%c%d: write value 0\n", 'A' + self->port_id, 'A' + self->port_id, c);                     
                     }
+                    qemu_irq_lower(self->pins[c]);
                     self->GPIO.ODR &= ~(1 << c);
                     //GPIO_TRACE("GPIO%c P%c%d: write value 0\n", 'A' + self->port_id, 'A' + self->port_id, c);
                 } else {
@@ -189,20 +189,18 @@ static void stm32fxxx_gpio_write(void *opaque, hwaddr addr, uint64_t val64, unsi
             // Bit reset register
             // val
             for(int c = 0; c < 16; c++){
-                //bool set = (val >> c) & 1;
-                //bool reset = (val >> (16 + c)) & 1;
+                bool set_reg = (val >> c) & 1;
                 if (self->port_id==2) {
                     qemu_irq_raise(self->pins[c]);
-                    printf("GPIO%c BRR(2) %08x\n", 'A' + self->port_id, (int)c);
+                    if (set_reg) {
+                        printf("GPIO%c BRR(2) %08x\n", 'A' + self->port_id, (int)c);
+                    }
                 }
                 if (self->port_id==1) {
-                    //if (reset)
-                    //    qemu_irq_raise(self->pins[c]);
-
-                    //if (set)
                     qemu_irq_lower(self->pins[c]);
-
-                    printf("GPIO%c BRR(1) %08x\n", 'A' + self->port_id, (int)c);
+                    if (set_reg) {   
+                       printf("GPIO%c BRR(1) %08x\n", 'A' + self->port_id, (int)c);
+                    }
                 }
             }
         } break;
