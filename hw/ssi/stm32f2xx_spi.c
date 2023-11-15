@@ -60,6 +60,8 @@ static void stm32f2xx_spi_transfer(STM32F2XXSPIState *s, int size)
     DB_PRINT("Data to send: 0x%x\n", s->spi_dr);
     if (size==1) {
         s->rx_buffer[s->rx_buffer_pos] = ssi_transfer(s->ssi, s->spi_dr);
+        s->spi_dr=s->rx_buffer[s->rx_buffer_pos];
+
         s->rx_buffer_pos++;
     }
     if (size==4) {
@@ -68,6 +70,9 @@ static void stm32f2xx_spi_transfer(STM32F2XXSPIState *s, int size)
 
         s->rx_buffer[s->rx_buffer_pos] = ssi_transfer(s->ssi, (s->spi_dr & 0xFF00) >> 8);
         s->rx_buffer_pos++;
+
+        s->spi_dr=s->rx_buffer[s->rx_buffer_pos-2] | s->rx_buffer[s->rx_buffer_pos-1] >> 8;
+
     }
 
     s->spi_sr |= STM_SPI_SR_RXNE;

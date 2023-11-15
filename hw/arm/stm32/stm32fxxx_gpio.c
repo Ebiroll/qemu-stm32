@@ -190,17 +190,13 @@ static void stm32fxxx_gpio_write(void *opaque, hwaddr addr, uint64_t val64, unsi
             // val
             for(int c = 0; c < 16; c++){
                 bool set_reg = (val >> c) & 1;
-                if (self->port_id==2) {
-                    qemu_irq_raise(self->pins[c]);
-                    if (set_reg) {
-                        printf("GPIO%c BRR(2) %08x\n", 'A' + self->port_id, (int)c);
-                    }
-                }
-                if (self->port_id==1) {
+                //    if (set_reg) {
+                //        qemu_irq_raise(self->pins[c]);
+                //        printf("GPIO%c BRR(2) %08x\n", 'A' + self->port_id, (int)c);
+                //    }
+                if (set_reg) {   
                     qemu_irq_lower(self->pins[c]);
-                    if (set_reg) {   
-                       printf("GPIO%c BRR(1) %08x\n", 'A' + self->port_id, (int)c);
-                    }
+                    printf("GPIO%c BRR(1) %08x\n", 'A' + self->port_id, (int)c);
                 }
             }
         } break;
