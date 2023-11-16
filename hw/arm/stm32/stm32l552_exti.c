@@ -33,12 +33,14 @@ static void stm32l552_exti_reset(DeviceState *dev)
 {
     STM32L552ExtiState *s = STM32L552_EXTI(dev);
 
-    s->exti_imr = 0x00000000;
-    s->exti_emr = 0x00000000;
-    s->exti_rtsr = 0x00000000;
-    s->exti_ftsr = 0x00000000;
-    s->exti_swier = 0x00000000;
+    s->exti_imr1 = 0x00000000;
+    //s->exti_emr = 0x00000000;
+    s->exti_rtsr1 = 0x00000000;
+    s->exti_ftsr1 = 0x00000000;
     s->exti_pr = 0x00000000;
+    s->exti_rpr1 = 0x00000000;
+    s->exti_fpr1 = 0x00000000;
+
 }
 
 static void stm32l552_exti_set_irq(void *opaque, int irq, int level)
@@ -47,20 +49,21 @@ static void stm32l552_exti_set_irq(void *opaque, int irq, int level)
 
     //trace_stm32l552_exti_set_irq(irq, level);
 
-    if (((1 << irq) & s->exti_rtsr) && level) {
+    if (((1 << irq) & s->exti_rtsr1) && level) {
         /* Rising Edge */
-        s->exti_pr |= 1 << irq;
+        s->exti_rpr1 |= 1 << irq;
     }
 
-    if (((1 << irq) & s->exti_ftsr) && !level) {
+    if (((1 << irq) & s->exti_ftsr1) && !level) {
         /* Falling Edge */
-        s->exti_pr |= 1 << irq;
+        s->exti_fpr1 |= 1 << irq;
     }
 
-    if (!((1 << irq) & s->exti_imr)) {
+    if (!((1 << irq) & s->exti_imr1)) {
         /* Interrupt is masked */
-      // FTW! Investigate whi IRQ is masked  return;
+        // We pulse just in case
     }
+
     qemu_irq_pulse(s->irq[irq]);
 }
 
@@ -72,16 +75,19 @@ static uint64_t stm32l552_exti_read(void *opaque, hwaddr addr,
     //trace_stm32l552_exti_read(addr);
 
     switch (addr) {
-    case EXTI_IMR:
-        return s->exti_imr;
-    case EXTI_EMR:
-        return s->exti_emr;
-    case EXTI_RTSR:
-        return s->exti_rtsr;
-    case EXTI_FTSR:
-        return s->exti_ftsr;
-    case EXTI_SWIER:
-        return s->exti_swier;
+    case EXTI_RTSR1:
+        return s->exti_rtsr1;
+    case EXTI_IMR1:
+        return s->exti_imr1;
+    case EXTI_FTSR1:
+        return s->exti_ftsr1;
+    case EXTI_SWIER1:
+        return s->exti_swier1;
+
+    case EXTI_RPR1:
+        return s->exti_rpr1;
+    case EXTI_FPR1:
+        return s->exti_fpr1;
     case EXTI_PR:
         return s->exti_pr;
     default:
@@ -101,20 +107,20 @@ static void stm32l552_exti_write(void *opaque, hwaddr addr,
     //trace_stm32l552_exti_write(addr, value);
 
     switch (addr) {
-    case EXTI_IMR:
-        s->exti_imr = value;
+    case EXTI_IMR1:
+        s->exti_imr1 = value;
         return;
-    case EXTI_EMR:
-        s->exti_emr = value;
+    case EXTI_FTSR1:
+        s->exti_ftsr1 = value;
         return;
-    case EXTI_RTSR:
-        s->exti_rtsr = value;
+    case EXTI_RTSR1:
+        s->exti_rtsr1 = value;
         return;
-    case EXTI_FTSR:
-        s->exti_ftsr = value;
+    case EXTI_RPR1:
+        s->exti_rpr1 = value;
         return;
-    case EXTI_SWIER:
-        s->exti_swier = value;
+    case EXTI_SWIER1:
+        s->exti_swier1 = value;
         return;
     case EXTI_PR:
         /* This bit is cleared by writing a 1 to it */
@@ -154,11 +160,12 @@ static const VMStateDescription vmstate_stm32l552_exti = {
     .version_id = 1,
     .minimum_version_id = 1,
     .fields = (VMStateField[]) {
-        VMSTATE_UINT32(exti_imr, STM32L552ExtiState),
-        VMSTATE_UINT32(exti_emr, STM32L552ExtiState),
-        VMSTATE_UINT32(exti_rtsr, STM32L552ExtiState),
-        VMSTATE_UINT32(exti_ftsr, STM32L552ExtiState),
-        VMSTATE_UINT32(exti_swier, STM32L552ExtiState),
+        VMSTATE_UINT32(exti_rtsr1, STM32L552ExtiState),
+        VMSTATE_UINT32(exti_imr1, STM32L552ExtiState),
+        VMSTATE_UINT32(exti_ftsr1, STM32L552ExtiState),
+        VMSTATE_UINT32(exti_rpr1, STM32L552ExtiState),
+        VMSTATE_UINT32(exti_fpr1, STM32L552ExtiState),
+        VMSTATE_UINT32(exti_swier1, STM32L552ExtiState),
         VMSTATE_UINT32(exti_pr, STM32L552ExtiState),
         VMSTATE_END_OF_LIST()
     }

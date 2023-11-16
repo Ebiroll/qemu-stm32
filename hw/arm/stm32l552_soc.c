@@ -185,7 +185,8 @@ static const uint32_t timer_addr[] = { 0x40012C00, 0x40000000, 0x40000400,
 
 static const uint32_t spi_addr[] =   { 0x40013000, 0x40003800, 0x40003C00 };
 
-#define EXTI_ADDR                      0x40013C00
+//#define EXTI_ADDR                      0x40013C00
+#define   EXTI_ADDR         0x4002F400
 
 #define SYSCFG_IRQ               71
 static const int usart_irq[] = { 61, 62, 63, 64, 65};
@@ -635,8 +636,8 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
     // ASIC1 & 2 connect interrupts
     dev = DEVICE(&s->exti);
     busdev = SYS_BUS_DEVICE(dev);
-    qdev_connect_gpio_out(DEVICE(&s->asic[0]), 0, qdev_get_gpio_in(dev, 8));
-    qdev_connect_gpio_out(DEVICE(&s->asic[1]), 0, qdev_get_gpio_in(dev, 13));
+    qdev_connect_gpio_out(DEVICE(&s->asic[0]), 0, qdev_get_gpio_in(dev, 13));
+    qdev_connect_gpio_out(DEVICE(&s->asic[1]), 0, qdev_get_gpio_in(dev, 8));
     // This tried to connect interrupts direcly to the CPU, Did not work
     //sysbus_connect_irq(busdev, 8, qdev_get_gpio_in(armv7m, 19));
     //sysbus_connect_irq(busdev, 9, qdev_get_gpio_in(armv7m, 19));

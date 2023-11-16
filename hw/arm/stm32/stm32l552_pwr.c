@@ -41,7 +41,7 @@
 static uint64_t stm32l552_pwr_read(void *opaque, hwaddr addr, unsigned int size){
     struct stm32l552_pwr *self = (struct stm32l552_pwr*)opaque;
 
-    PWR_TRACE("read: from register at offset %08x\n", (uint32_t)addr);
+    if (addr!=PWR_SR2) PWR_TRACE("read: from register at offset %08x\n", (uint32_t)addr);
 
     switch(addr){
         case PWR_CR1: {

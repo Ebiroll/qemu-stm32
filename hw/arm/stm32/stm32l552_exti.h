@@ -28,12 +28,16 @@
 #include "hw/sysbus.h"
 #include "qom/object.h"
 
-#define EXTI_IMR   0x00
-#define EXTI_EMR   0x04
-#define EXTI_RTSR  0x08
-#define EXTI_FTSR  0x0C
-#define EXTI_SWIER 0x10
-#define EXTI_PR    0x14
+#define EXTI_RTSR1   0x00
+#define EXTI_FTSR1   0x04
+//#define EXTI_EMR     0x04
+#define EXTI_SWIER1  0x08
+#define EXTI_RPR1    0x0C
+#define EXTI_FPR1    0x10
+#define EXTI_PR      0x14
+#define EXTI_IMR1    0x80
+// External interrupt selection register 1
+#define EXTICR3      0x68
 
 #define TYPE_STM32L552_EXTI "stm32l552-exti"
 OBJECT_DECLARE_SIMPLE_TYPE(STM32L552ExtiState, STM32L552_EXTI)
@@ -47,11 +51,15 @@ struct STM32L552ExtiState {
 
     MemoryRegion mmio;
 
-    uint32_t exti_imr;
-    uint32_t exti_emr;
-    uint32_t exti_rtsr;
-    uint32_t exti_ftsr;
-    uint32_t exti_swier;
+    uint32_t exti_rtsr1;
+    uint32_t exti_imr1;
+    //uint32_t exti_emr;
+
+    uint32_t exti_rpr1;
+    uint32_t exti_fpr1;
+
+    uint32_t exti_ftsr1;
+    uint32_t exti_swier1;
     uint32_t exti_pr;
 
     qemu_irq irq[NUM_INTERRUPT_OUT_LINES];
