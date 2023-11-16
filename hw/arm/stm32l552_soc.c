@@ -627,6 +627,21 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
 #define EXTI_LINE_17 17
 
     sysbus_connect_irq(busdev, EXTI_LINE_17, qdev_get_gpio_in(armv7m, NVIC_RTC_ALARM_IRQ));
+#if 0
+  EXTI8_IRQn                = 19,     /*!< EXTI Line8 interrupt                                              */
+  EXTI13_IRQn               = 24,     /*!< EXTI Line13 interrupt      
+                                     */
+#endif
+    // ASIC1 & 2 connect interrupts
+    dev = DEVICE(&s->exti);
+    busdev = SYS_BUS_DEVICE(dev);
+    qdev_connect_gpio_out(DEVICE(&s->asic[0]), 0, qdev_get_gpio_in(dev, 8));
+    qdev_connect_gpio_out(DEVICE(&s->asic[1]), 0, qdev_get_gpio_in(dev, 13));
+    // This tried to connect interrupts direcly to the CPU, Did not work
+    //sysbus_connect_irq(busdev, 8, qdev_get_gpio_in(armv7m, 19));
+    //sysbus_connect_irq(busdev, 9, qdev_get_gpio_in(armv7m, 19));
+
+
 
 
     s->armv7m.cpu->env.v7m.secure = false;
@@ -674,6 +689,10 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
 
     qdev_connect_gpio_out(DEVICE(&s->gpio[1]), 12,  // PB12
                         qdev_get_gpio_in_named(DEVICE(&s->asic[1]), "cs", 0));
+
+    s->asic[0].asic_num=1;
+    s->asic[1].asic_num=2;
+    s->asic[2].asic_num=3;
 
 
 /*

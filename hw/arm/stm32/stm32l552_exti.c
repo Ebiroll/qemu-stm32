@@ -59,7 +59,7 @@ static void stm32l552_exti_set_irq(void *opaque, int irq, int level)
 
     if (!((1 << irq) & s->exti_imr)) {
         /* Interrupt is masked */
-        return;
+      // FTW! Investigate whi IRQ is masked  return;
     }
     qemu_irq_pulse(s->irq[irq]);
 }
