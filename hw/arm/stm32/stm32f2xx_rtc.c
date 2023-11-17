@@ -89,7 +89,7 @@
 
 static void f2xx_update_current_date_and_time(void *arg);
 
-#define DEBUG_STM32F2XX_RTC
+// #define DEBUG_STM32F2XX_RTC
 #ifdef DEBUG_STM32F2XX_RTC
 // NOTE: The usleep() helps the MacOS stdout from freezing when we have a lot of print out
 #define DPRINTF(fmt, ...)                                       \

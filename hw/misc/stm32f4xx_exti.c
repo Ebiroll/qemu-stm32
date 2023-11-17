@@ -98,7 +98,7 @@ static void stm32f4xx_exti_write(void *opaque, hwaddr addr,
     STM32F4xxExtiState *s = opaque;
     uint32_t value = (uint32_t) val64;
 
-    trace_stm32f4xx_exti_write(addr, value);
+    //trace_stm32f4xx_exti_write(addr, value);
 
     switch (addr) {
     case EXTI_IMR:

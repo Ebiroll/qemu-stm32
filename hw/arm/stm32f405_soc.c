@@ -33,7 +33,97 @@
 #include "hw/qdev-core.h"
 
 #if 0
+  { 6, 7, 8, 9, 10, 23, 23, 23, 23, 23, 40,
+                                 40, 40, 40, 40, 40} ;
 
+
+
+ 0 .word     WWDG_IRQHandler                   /* Window WatchDog              */                                        
+ 1  .word     PVD_IRQHandler                    /* PVD through EXTI Line detection */                        
+ 2  .word     TAMP_STAMP_IRQHandler             /* Tamper and TimeStamps through the EXTI line */            
+ 3  .word     RTC_WKUP_IRQHandler               /* RTC Wakeup through the EXTI line */                      
+ 4 .word     FLASH_IRQHandler                  /* FLASH                        */                                          
+ 5 .word     RCC_IRQHandler                    /* RCC                          */                                            
+ 6 .word     EXTI0_IRQHandler                  /* EXTI Line0                   */                        
+ 7  .word     EXTI1_IRQHandler                  /* EXTI Line1                   */                          
+ 8  .word     EXTI2_IRQHandler                  /* EXTI Line2                   */                          
+ 9 .word     EXTI3_IRQHandler                  /* EXTI Line3                   */                          
+ 10 .word     EXTI4_IRQHandler                  /* EXTI Line4                   */                          
+ 11 .word     DMA1_Stream0_IRQHandler           /* DMA1 Stream 0                */                  
+ 12 .word     DMA1_Stream1_IRQHandler           /* DMA1 Stream 1                */                   
+ 13 .word     DMA1_Stream2_IRQHandler           /* DMA1 Stream 2                */                   
+ 14 .word     DMA1_Stream3_IRQHandler           /* DMA1 Stream 3                */                   
+ 15 .word     DMA1_Stream4_IRQHandler           /* DMA1 Stream 4                */                   
+ 16 .word     DMA1_Stream5_IRQHandler           /* DMA1 Stream 5                */                   
+ 17 .word     DMA1_Stream6_IRQHandler           /* DMA1 Stream 6                */                   
+ 18 .word     ADC_IRQHandler                    /* ADC1                         */                   
+ 19 .word     0               				  /* Reserved                     */                         
+ 20 .word     0              					  /* Reserved                     */                          
+ 21 .word     0                                 /* Reserved                     */                          
+ 22  .word     0                                 /* Reserved                     */                          
+ 23 .word     EXTI9_5_IRQHandler                /* External Line[9:5]s          */                          
+  .word     TIM1_BRK_TIM9_IRQHandler          /* TIM1 Break and TIM9          */         
+  .word     TIM1_UP_TIM10_IRQHandler          /* TIM1 Update and TIM10        */         
+  .word     TIM1_TRG_COM_TIM11_IRQHandler     /* TIM1 Trigger and Commutation and TIM11 */
+  .word     TIM1_CC_IRQHandler                /* TIM1 Capture Compare         */                          
+  .word     TIM2_IRQHandler                   /* TIM2                         */                   
+  .word     TIM3_IRQHandler                   /* TIM3                         */                   
+  .word     TIM4_IRQHandler                   /* TIM4                         */                   
+  .word     I2C1_EV_IRQHandler                /* I2C1 Event                   */                          
+  .word     I2C1_ER_IRQHandler                /* I2C1 Error                   */                          
+  .word     I2C2_EV_IRQHandler                /* I2C2 Event                   */                          
+  .word     I2C2_ER_IRQHandler                /* I2C2 Error                   */                            
+  .word     SPI1_IRQHandler                   /* SPI1                         */                   
+  .word     SPI2_IRQHandler                   /* SPI2                         */                   
+  .word     USART1_IRQHandler                 /* USART1                       */                   
+  .word     USART2_IRQHandler                 /* USART2                       */                   
+  .word     0               				  /* Reserved                     */                   
+  .word     EXTI15_10_IRQHandler              /* External Line[15:10]s        */                          
+  .word     RTC_Alarm_IRQHandler              /* RTC Alarm (A and B) through EXTI Line */                 
+  .word     OTG_FS_WKUP_IRQHandler            /* USB OTG FS Wakeup through EXTI line */                       
+  .word     0                                 /* Reserved     				        */         
+  .word     0                                 /* Reserved       			        */         
+  .word     0                                 /* Reserved 					          */
+  .word     0                                 /* Reserved                     */                          
+  .word     DMA1_Stream7_IRQHandler           /* DMA1 Stream7                 */                          
+  .word     0                                 /* Reserved                     */                   
+  .word     SDIO_IRQHandler                   /* SDIO                         */                   
+  .word     TIM5_IRQHandler                   /* TIM5                         */                   
+  .word     SPI3_IRQHandler                   /* SPI3                         */                   
+  .word     0                                 /* Reserved                     */                   
+  .word     0                                 /* Reserved                     */                   
+  .word     0                                 /* Reserved                     */                   
+  .word     0                                 /* Reserved                     */
+  .word     DMA2_Stream0_IRQHandler           /* DMA2 Stream 0                */                   
+  .word     DMA2_Stream1_IRQHandler           /* DMA2 Stream 1                */                   
+  .word     DMA2_Stream2_IRQHandler           /* DMA2 Stream 2                */                   
+  .word     DMA2_Stream3_IRQHandler           /* DMA2 Stream 3                */                   
+  .word     DMA2_Stream4_IRQHandler           /* DMA2 Stream 4                */                   
+  .word     0                    			        /* Reserved                     */                   
+  .word     0              					          /* Reserved                     */                     
+  .word     0              					          /* Reserved                     */                          
+  .word     0             					          /* Reserved                     */                          
+  .word     0              					          /* Reserved                     */                          
+  .word     0              					          /* Reserved                     */                          
+  .word     OTG_FS_IRQHandler                 /* USB OTG FS                   */                   
+  .word     DMA2_Stream5_IRQHandler           /* DMA2 Stream 5                */                   
+  .word     DMA2_Stream6_IRQHandler           /* DMA2 Stream 6                */                   
+  .word     DMA2_Stream7_IRQHandler           /* DMA2 Stream 7                */                   
+  .word     USART6_IRQHandler                 /* USART6                       */                    
+  .word     I2C3_EV_IRQHandler                /* I2C3 event                   */                          
+  .word     I2C3_ER_IRQHandler                /* I2C3 error                   */                          
+  .word     0                                 /* Reserved                     */                   
+  .word     0                                 /* Reserved                     */                   
+  .word     0                                 /* Reserved                     */                         
+  .word     0                                 /* Reserved                     */                   
+  .word     0                                 /* Reserved                     */                   
+  .word     0                                 /* Reserved                     */                   
+  .word     0                                 /* Reserved                     */
+  .word     FPU_IRQHandler                    /* FPU                          */
+  .word     0                                 /* Reserved                     */                   
+  .word     0                                 /* Reserved                     */
+  .word     SPI4_IRQHandler                   /* SPI4                         */     
+  
 /******  Cortex-M4 Processor Exceptions Numbers ****************************************************************/
   NonMaskableInt_IRQn         = -14,    /*!< 2 Non Maskable Interrupt                                          */
   MemoryManagement_IRQn       = -12,    /*!< 4 Cortex-M4 Memory Management Interrupt                           */
@@ -465,8 +555,6 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
     }
 
 
-
-
     // Alarm A
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->rtc), 0, qdev_get_gpio_in(dev, 22));
     // Alarm B
@@ -479,6 +567,11 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
 
     sysbus_connect_irq(busdev, EXTI_LINE_17, qdev_get_gpio_in(armv7m, NVIC_RTC_ALARM_IRQ));
 
+    dev = DEVICE(&s->exti);
+    busdev = SYS_BUS_DEVICE(dev);
+    qdev_connect_gpio_out(DEVICE(&s->asic[0]), 0, qdev_get_gpio_in(dev, 9));
+    qdev_connect_gpio_out(DEVICE(&s->asic[1]), 0, qdev_get_gpio_in(dev, 14));
+    qdev_connect_gpio_out(DEVICE(&s->asic[2]), 0, qdev_get_gpio_in(dev, 15));
 
 
 
@@ -516,6 +609,10 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
 
     qdev_connect_gpio_out(DEVICE(&s->gpio[1]), 10,  // PB10
                         qdev_get_gpio_in_named(DEVICE(&s->asic[2]), "cs", 0));
+
+    s->asic[0].asic_num=1;
+    s->asic[1].asic_num=2;
+    s->asic[2].asic_num=3;
 
 
     create_unimplemented_device("timer[7]",    0x40001400, 0x400);
