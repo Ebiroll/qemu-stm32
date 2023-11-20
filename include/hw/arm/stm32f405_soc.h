@@ -40,6 +40,20 @@
 #include "hw/arm/stm32/stm32fxxx_gpio.h"
 #include "hw/arm/stm32/stm32f4xx_i2c.h"
 #include "hw/arm/asic_sim/nn1002.h"
+#include "hw/ssi/ssi.h"
+
+#define TYPE_ASIC_SSP "asic-ssp"
+OBJECT_DECLARE_SIMPLE_TYPE(AsicSSPState, ASIC_SSP)
+
+/* "Demux" the signal based on current chipselect */
+struct AsicSSPState {
+    SSIPeripheral ssidev;
+    SSIBus *bus[3];
+    uint32_t enable[3];
+    qemu_irq gp_out[3];
+};
+
+
 
 #define TYPE_STM32F405_SOC "stm32f405-soc"
 OBJECT_DECLARE_SIMPLE_TYPE(STM32F405State, STM32F405_SOC)
@@ -76,6 +90,8 @@ struct STM32F405State {
     stm32fxxx_gpio gpio[STM_NUM_GPIO];
     STM32F4XXI2cState i2c;
 
+    DeviceState   *mux;
+    //SSIBus        *hSpi1;
     NN1002State   asic[3];
 
     stm32fxxx_pwr     pwr;

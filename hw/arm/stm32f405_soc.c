@@ -25,12 +25,125 @@
 #include "qemu/osdep.h"
 #include "qapi/error.h"
 #include "exec/address-spaces.h"
+#include "migration/vmstate.h"
 #include "sysemu/sysemu.h"
 #include "hw/arm/stm32f405_soc.h"
 #include "hw/qdev-clock.h"
 #include "hw/misc/unimp.h"
 #include "hw/arm/stm32/stm32f2xx_rtc.h"
 #include "hw/qdev-core.h"
+#include "hw/irq.h"
+
+
+static uint32_t asic_ssp_transfer(SSIPeripheral *dev, uint32_t value)
+{
+    AsicSSPState *s = ASIC_SSP(dev);
+    int i;
+
+    for (i = 0; i < 3; i++) {
+        if (s->enable[i]) {
+            return ssi_transfer(s->bus[i], value);
+        }
+    }
+    return 0;
+}
+
+static void asic_ssp_gpio_cs(void *opaque, int line, int level)
+{
+    AsicSSPState *s = (AsicSSPState *)opaque;
+    assert(line >= 0 && line < 3);
+    s->enable[line] = !level;
+    if (level) {
+        qemu_irq_raise(s->gp_out[line]);
+
+    } else {
+        qemu_irq_lower(s->gp_out[line]);
+    }
+}
+
+
+static void asic_ssp_realize(SSIPeripheral *d, Error **errp)
+{
+    DeviceState *dev = DEVICE(d);
+    AsicSSPState *s = ASIC_SSP(d);
+
+    qdev_init_gpio_in(dev, asic_ssp_gpio_cs, 3);
+    qdev_init_gpio_out(dev, s->gp_out, 3);
+    s->bus[0] = ssi_create_bus(dev, "ssi0");
+    s->bus[1] = ssi_create_bus(dev, "ssi1");
+    s->bus[2] = ssi_create_bus(dev, "ssi2");
+}
+
+//  STM32F405State *s = STM32F405_SOC(dev_soc);
+static void asic_ssp_attach(STM32F405State *s,Error **errp)
+{
+    //void *spibus;
+    void *bus;
+    //spibus = qdev_get_child_bus(DEVICE(&s->spi[1]), "ssi");
+
+
+    bus = qdev_get_child_bus(s->mux, "ssi0");
+    if (!qdev_realize(DEVICE(&s->asic[0]), bus, errp)) {
+                return;
+    }
+
+    bus = qdev_get_child_bus(s->mux, "ssi1");
+    if (!qdev_realize(DEVICE(&s->asic[1]), bus, errp)) {
+                return;
+    }
+
+    bus = qdev_get_child_bus(s->mux, "ssi2");
+    if (!qdev_realize(DEVICE(&s->asic[2]), bus, errp)) {
+                return;
+    }
+
+    qdev_connect_gpio_out(DEVICE(&s->gpio[1]), 8,  // PB8
+                        qdev_get_gpio_in(s->mux, 0));
+
+
+    qdev_connect_gpio_out(DEVICE(&s->gpio[1]), 9,  // PB9
+                        qdev_get_gpio_in(s->mux, 1));
+
+
+    qdev_connect_gpio_out(DEVICE(&s->gpio[1]), 10,  // PB10
+                        qdev_get_gpio_in(s->mux, 2));
+
+
+
+    qdev_connect_gpio_out(DEVICE(s->mux), 0,  
+                        qdev_get_gpio_in_named(DEVICE(&s->asic[0]), "cs", 0));
+
+
+    qdev_connect_gpio_out(DEVICE(s->mux), 1,  
+                        qdev_get_gpio_in_named(DEVICE(&s->asic[1]), "cs", 0));
+
+
+    qdev_connect_gpio_out(DEVICE(s->mux), 2,  
+                        qdev_get_gpio_in_named(DEVICE(&s->asic[2]), "cs", 0));
+
+
+
+#if 0
+    qdev_connect_gpio_out(DEVICE(&s->gpio[1]), 8,  // PB8
+                        qdev_get_gpio_in_named(DEVICE(&s->asic[0]), "cs", 0));
+
+
+    qdev_connect_gpio_out(DEVICE(&s->gpio[1]), 9,  // PB9
+                        qdev_get_gpio_in_named(DEVICE(&s->asic[1]), "cs", 0));
+
+
+    qdev_connect_gpio_out(DEVICE(&s->gpio[1]), 10,  // PB10
+                        qdev_get_gpio_in_named(DEVICE(&s->asic[2]), "cs", 0));
+
+#endif
+    //qdev_connect_gpio_out(sms->mpu->gpio, SPITZ_GPIO_LCDCON_CS,
+    //                    qdev_get_gpio_in(sms->mux, 0));
+    //qdev_connect_gpio_out(sms->mpu->gpio, SPITZ_GPIO_ADS7846_CS,
+    //                    qdev_get_gpio_in(sms->mux, 1));
+    //qdev_connect_gpio_out(sms->mpu->gpio, SPITZ_GPIO_MAX1111_CS,
+    //                    qdev_get_gpio_in(sms->mux, 2));
+    // "cs"
+}
 
 #if 0
   { 6, 7, 8, 9, 10, 23, 23, 23, 23, 23, 40,
@@ -272,13 +385,31 @@ static void stm32f405_soc_initfn(Object *obj)
     }
 
     for (i = 0; i < STM_NUM_SPIS; i++) {
-        void *bus;
+        //void *bus;
         object_initialize_child(obj, "spi[*]", &s->spi[i], TYPE_STM32F2XX_SPI);
-        bus = qdev_get_child_bus(DEVICE(&s->spi[i]), "ssi");
-        if (i<3) {
-            object_initialize_child(OBJECT(bus), "nnasic", &s->asic[i], TYPE_NN1002);
-        }
+        //bus = qdev_get_child_bus(DEVICE(&s->spi[i]), "ssi");
+        //if (i<3) {
+        //    object_initialize_child(OBJECT(bus), "nnasic", &s->asic[i], TYPE_NN1002);
+        //}
     }
+    void *busm;
+    //object_initialize_child(obj, "mux", s->mux, TYPE_ASIC_SSP);
+
+    void *spibus;
+    //void *bus;
+    spibus = qdev_get_child_bus(DEVICE(&s->spi[0]), "ssi");
+
+    s->mux = ssi_create_peripheral(spibus,
+                                     TYPE_ASIC_SSP);
+
+
+    busm = qdev_get_child_bus(s->mux, "ssi0");
+    object_initialize_child(OBJECT(busm), "nnasic", &s->asic[0], TYPE_NN1002);
+    busm = qdev_get_child_bus(s->mux, "ssi1");     
+    object_initialize_child(OBJECT(busm), "nnasic", &s->asic[1], TYPE_NN1002);
+    busm = qdev_get_child_bus(s->mux, "ssi2");     
+    object_initialize_child(OBJECT(busm), "nnasic", &s->asic[2], TYPE_NN1002);
+
     #define NAME_SIZE 32
     char name[NAME_SIZE];
 
@@ -463,6 +594,8 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
                            qdev_get_gpio_in(DEVICE(&s->adc_irqs), i));
     }
 
+
+
     /* SPI devices */
     for (i = 0; i < STM_NUM_SPIS; i++) {
 
@@ -481,17 +614,33 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
         sysbus_mmio_map(busdev, 0, spi_addr[i]);
         sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(armv7m, spi_irq[i]));
 
-        if (i<3) {        
+        if (i==1) {
+#if 0
             BusState* bus;
-            // bus=qdev_get_child_bus(DEVICE(h3), "ssi");
             bus = qdev_get_child_bus(DEVICE(&s->spi[i]), "ssi");
-                                 // 
-             if (!qdev_realize(DEVICE(&s->asic[i]), bus, errp)) {
+
+            s->mux = qdev_new(TYPE_ASIC_SSP);
+            if (!qdev_realize(DEVICE(s->mux), bus, errp)) {
                 return;
             }
+#endif 
+        }        
+
+
+        if (i<3) {        
+            //BusState* bus;
+            // bus=qdev_get_child_bus(DEVICE(&s->spi[i]), "ssi");
+            //bus = qdev_get_child_bus(DEVICE(&s->spi[i]), "ssi");
+                                 // 
+             //if (!qdev_realize(DEVICE(s->asic[i]), bus, errp)) {
+             //   return;
+            //}
         }
 
     }
+
+
+
     // create_unimplemented_device("RCC",         0x40023800, 0x400);
     /* RCC Device*/
     dev = DEVICE(&s->rcc);
@@ -562,6 +711,8 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
     // Wake up timer
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->rtc), 2, qdev_get_gpio_in(dev, 17));
 
+
+
 #define NVIC_RTC_ALARM_IRQ 41
 #define EXTI_LINE_17 17
 
@@ -569,10 +720,10 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
 
     dev = DEVICE(&s->exti);
     busdev = SYS_BUS_DEVICE(dev);
-    qdev_connect_gpio_out(DEVICE(&s->asic[0]), 0, qdev_get_gpio_in(dev, 9));
-    qdev_connect_gpio_out(DEVICE(&s->asic[1]), 0, qdev_get_gpio_in(dev, 14));
-    qdev_connect_gpio_out(DEVICE(&s->asic[2]), 0, qdev_get_gpio_in(dev, 15));
-
+    qdev_connect_gpio_out(DEVICE(s->mux), 0, qdev_get_gpio_in(dev, 9));
+    qdev_connect_gpio_out(DEVICE(s->mux), 1, qdev_get_gpio_in(dev, 14));
+    qdev_connect_gpio_out(DEVICE(s->mux), 2, qdev_get_gpio_in(dev, 15));
+    // &s->asic[0]
 
 
 
@@ -599,20 +750,12 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
 
     }
 
-    qdev_connect_gpio_out(DEVICE(&s->gpio[1]), 8,  // PB8
-                        qdev_get_gpio_in_named(DEVICE(&s->asic[0]), "cs", 0));
-
-
-    qdev_connect_gpio_out(DEVICE(&s->gpio[1]), 9,  // PB9
-                        qdev_get_gpio_in_named(DEVICE(&s->asic[1]), "cs", 0));
-
-
-    qdev_connect_gpio_out(DEVICE(&s->gpio[1]), 10,  // PB10
-                        qdev_get_gpio_in_named(DEVICE(&s->asic[2]), "cs", 0));
 
     s->asic[0].asic_num=1;
     s->asic[1].asic_num=2;
     s->asic[2].asic_num=3;
+
+    asic_ssp_attach(s,errp);
 
 
     create_unimplemented_device("timer[7]",    0x40001400, 0x400);
@@ -658,7 +801,38 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
     create_unimplemented_device("USB OTG FS",  0x50000000, 0x31000);
     create_unimplemented_device("DCMI",        0x50050000, 0x400);
     create_unimplemented_device("RNG",         0x50060800, 0x400);
+};
+
+
+static const VMStateDescription vmstate_asic_ssp_regs = {
+    .name = "asic-ssp",
+    .version_id = 2,
+    .minimum_version_id = 2,
+    .fields = (VMStateField[]) {
+        VMSTATE_SSI_PERIPHERAL(ssidev, AsicSSPState),
+        VMSTATE_UINT32_ARRAY(enable, AsicSSPState, 3),
+        VMSTATE_END_OF_LIST(),
+    }
+};
+
+
+static void asic_ssp_class_init(ObjectClass *klass, void *data)
+{
+    DeviceClass *dc = DEVICE_CLASS(klass);
+    SSIPeripheralClass *k = SSI_PERIPHERAL_CLASS(klass);
+
+    k->realize = asic_ssp_realize;
+    k->transfer = asic_ssp_transfer;
+    dc->vmsd = &vmstate_asic_ssp_regs;
 }
+
+static const TypeInfo asic_ssp_info = {
+    .name          = TYPE_ASIC_SSP,
+    .parent        = TYPE_SSI_PERIPHERAL,
+    .instance_size = sizeof(AsicSSPState),
+    .class_init    = asic_ssp_class_init,
+};
+
 
 static Property stm32f405_soc_properties[] = {
     DEFINE_PROP_STRING("cpu-type", STM32F405State, cpu_type),
@@ -684,6 +858,7 @@ static const TypeInfo stm32f405_soc_info = {
 
 static void stm32f405_soc_types(void)
 {
+    type_register_static(&asic_ssp_info);
     type_register_static(&stm32f405_soc_info);
 }
 
