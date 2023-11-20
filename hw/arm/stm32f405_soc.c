@@ -108,7 +108,7 @@ static void asic_ssp_attach(STM32F405State *s,Error **errp)
     qdev_connect_gpio_out(DEVICE(&s->gpio[1]), 10,  // PB10
                         qdev_get_gpio_in(s->mux, 2));
 
-
+#if 0
 
     qdev_connect_gpio_out(DEVICE(s->mux), 0,  
                         qdev_get_gpio_in_named(DEVICE(&s->asic[0]), "cs", 0));
@@ -121,7 +121,7 @@ static void asic_ssp_attach(STM32F405State *s,Error **errp)
     qdev_connect_gpio_out(DEVICE(s->mux), 2,  
                         qdev_get_gpio_in_named(DEVICE(&s->asic[2]), "cs", 0));
 
-
+#endif
 
 #if 0
     qdev_connect_gpio_out(DEVICE(&s->gpio[1]), 8,  // PB8
@@ -718,12 +718,6 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
 
     sysbus_connect_irq(busdev, EXTI_LINE_17, qdev_get_gpio_in(armv7m, NVIC_RTC_ALARM_IRQ));
 
-    dev = DEVICE(&s->exti);
-    busdev = SYS_BUS_DEVICE(dev);
-    qdev_connect_gpio_out(DEVICE(s->mux), 0, qdev_get_gpio_in(dev, 9));
-    qdev_connect_gpio_out(DEVICE(s->mux), 1, qdev_get_gpio_in(dev, 14));
-    qdev_connect_gpio_out(DEVICE(s->mux), 2, qdev_get_gpio_in(dev, 15));
-    // &s->asic[0]
 
 
 
@@ -756,6 +750,25 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
     s->asic[2].asic_num=3;
 
     asic_ssp_attach(s,errp);
+
+
+    qdev_connect_gpio_out(DEVICE(s->mux), 0,  
+                        qdev_get_gpio_in_named(DEVICE(&s->asic[0]), "cs", 0));
+
+
+    qdev_connect_gpio_out(DEVICE(s->mux), 1,  
+                        qdev_get_gpio_in_named(DEVICE(&s->asic[1]), "cs", 0));
+
+
+    qdev_connect_gpio_out(DEVICE(s->mux), 2,  
+                        qdev_get_gpio_in_named(DEVICE(&s->asic[2]), "cs", 0));
+
+
+    dev = DEVICE(&s->exti);
+    //busdev = SYS_BUS_DEVICE(dev);
+    qdev_connect_gpio_out(DEVICE(&s->asic[0]), 0, qdev_get_gpio_in(dev, 9));
+    qdev_connect_gpio_out(DEVICE(&s->asic[1]), 0, qdev_get_gpio_in(dev, 14));
+    qdev_connect_gpio_out(DEVICE(&s->asic[2]), 0, qdev_get_gpio_in(dev, 15));
 
 
     create_unimplemented_device("timer[7]",    0x40001400, 0x400);
