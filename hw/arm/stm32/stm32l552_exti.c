@@ -52,19 +52,26 @@ static void stm32l552_exti_set_irq(void *opaque, int irq, int level)
     if (((1 << irq) & s->exti_rtsr1) && level) {
         /* Rising Edge */
         s->exti_rpr1 |= 1 << irq;
+        // NVIC likes to be pulsed??
+        //qemu_irq_raise(s->irq[irq]);
+        qemu_irq_pulse(s->irq[irq]);
+
     }
 
     if (((1 << irq) & s->exti_ftsr1) && !level) {
         /* Falling Edge */
         s->exti_fpr1 |= 1 << irq;
+        //qemu_irq_lower(s->irq[irq]);
+        // NVIC likes to be pulsed??
+        qemu_irq_pulse(s->irq[irq]);
     }
 
     if (!((1 << irq) & s->exti_imr1)) {
         /* Interrupt is masked */
-        // We pulse just in case
+         qemu_irq_pulse(s->irq[irq]);
     }
 
-    qemu_irq_pulse(s->irq[irq]);
+   
 }
 
 static uint64_t stm32l552_exti_read(void *opaque, hwaddr addr,
