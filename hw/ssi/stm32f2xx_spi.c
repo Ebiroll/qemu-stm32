@@ -27,6 +27,7 @@
 #include "qemu/module.h"
 #include "hw/ssi/stm32f2xx_spi.h"
 #include "migration/vmstate.h"
+#include "hw/irq.h"
 
 #ifndef STM_SPI_ERR_DEBUG
 #define STM_SPI_ERR_DEBUG 5
@@ -167,6 +168,16 @@ static void stm32f2xx_spi_write(void *opaque, hwaddr addr,
         s->read_buffer_pos=0;
         s->rx_buffer_pos=0;
         s->spi_cr2 = value;
+        //  SET_BIT(hspi->Instance->CR2, SPI_CR2_TXDMAEN);
+        //  Value: 0x1722
+        if (value == 0x1722) {
+            DB_PRINT("Write CR2: 0x%x\n", value);
+            // TODO: START DMA!!
+            // Fake IRQ!
+            qemu_irq_raise(s->irq);
+        }
+        // CLEAR_BIT(hspi->Instance->CR2, SPI_CR2_LDMATX);
+        //  Value: 0x1700
         return;
     case STM_SPI_SR:
         /* Read only register, except for clearing the CRCERR bit, which

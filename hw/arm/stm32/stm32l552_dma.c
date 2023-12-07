@@ -26,16 +26,18 @@
 #include <inttypes.h>
 #include "qemu/osdep.h"
 #include "qapi/error.h"
-#include "qemu-common.h"
+//#include "qemu-common.h"
 #include "qemu/log.h"
 #include "hw/sysbus.h"
+#include "hw/irq.h"
+#include "hw/qdev-properties.h"
 
-//#define DEBUG_STM32F2XX_DMA
-#ifdef DEBUG_STM32F2XX_DMA
+#define DEBUG_STM32L552_DMA
+#ifdef  DEBUG_STM32L552_DMA
 
 // NOTE: The usleep() helps the MacOS stdout from freezing when we have a lot of print out
 #define DPRINTF(fmt, ...)                                       \
-    do { printf("STM32F2XX_DMA: " fmt , ## __VA_ARGS__); \
+    do { printf("STM32L552_DMA: " fmt , ## __VA_ARGS__); \
          usleep(1000); \
     } while (0)
 #else
@@ -146,7 +148,7 @@ l552_dma_read(void *arg, hwaddr addr, unsigned int size)
     l552_dma *s = arg;
     uint64_t result;
 
-    DPRINTF("%s: addr: 0x%llx, size:%d...\n", __func__, addr, size);
+    DPRINTF("%s: addr: 0x%lx, size:%d...\n", __func__, addr, size);
 
     if (size != 4) {
         qemu_log_mask(LOG_UNIMP, "f2xx crc only supports 4-byte reads\n");
@@ -186,7 +188,7 @@ l552_dma_read(void *arg, hwaddr addr, unsigned int size)
         }
     }
 
-    DPRINTF("    %s: result:0x%llx\n", __func__, result);
+    DPRINTF("    %s: result:0x%lx\n", __func__, result);
     return result;
 }
 
@@ -292,15 +294,15 @@ l552_dma_write(void *arg, hwaddr addr, uint64_t data, unsigned int size)
     }
     switch(addr) {
     case R_DMA_LISR:
-        DPRINTF("%s: register LISR (READ-ONLY), data: 0x%llx\n", __func__, data);
+        DPRINTF("%s: register LISR (READ-ONLY), data: 0x%lx\n", __func__, data);
         qemu_log_mask(LOG_GUEST_ERROR, "f2xx dma: invalid write to ISR\n");
         break;
     case R_DMA_HISR:
-        DPRINTF("%s: register HISR (READ-ONLY), data: 0x%llx\n", __func__, data);
+        DPRINTF("%s: register HISR (READ-ONLY), data: 0x%lx\n", __func__, data);
         qemu_log_mask(LOG_GUEST_ERROR, "f2xx dma: invalid write to ISR\n");
         break;
     case R_DMA_LIFCR:
-        DPRINTF("%s: register LIFCR, data: 0x%llx\n", __func__, data);
+        DPRINTF("%s: register LIFCR, data: 0x%lx\n", __func__, data);
         // Any interrupt clear write to stream x clears all interrupts for that stream
         s->ifcr[addr - R_DMA_LIFCR] = data;
         if (data & 0x0f400000) {
@@ -321,7 +323,7 @@ l552_dma_write(void *arg, hwaddr addr, uint64_t data, unsigned int size)
         }
         break;
     case R_DMA_HIFCR:
-        DPRINTF("%s: register HIFCR, data: 0x%llx\n", __func__, data);
+        DPRINTF("%s: register HIFCR, data: 0x%lx\n", __func__, data);
         // Any interrupt clear write to stream x clears all interrupts for that stream
         s->ifcr[addr - R_DMA_LIFCR] = data;
         if (data & 0x0f400000) {
@@ -357,26 +359,32 @@ static const MemoryRegionOps l552_dma_ops = {
     }
 };
 
-static int
-l552_dma_init(SysBusDevice *dev)
+
+//static void
+//l552_rtc_realize(DeviceState *dev, Error **errp)
+
+static void
+l552_dma_realize(DeviceState *dev, Error **errp)
 {
-    l552_dma *s = FROM_SYSBUS(l552_dma, dev);
+    struct l552_dma *s = OBJECT_CHECK(struct l552_dma, dev, "l552_dma");
+    SysBusDevice *busdev = SYS_BUS_DEVICE(dev);
+
     int i;
 
     memory_region_init_io(&s->iomem, OBJECT(s), &l552_dma_ops, s, "dma", 0x400);
-    sysbus_init_mmio(dev, &s->iomem);
+    sysbus_init_mmio(busdev, &s->iomem);
 
     for (i = 0; i < R_DMA_Sx_COUNT; i++) {
-        sysbus_init_irq(dev, &s->stream[i].irq);
+        sysbus_init_irq(busdev, &s->stream[i].irq);
     }
 
-    return 0;
 }
 
 static void
 l552_dma_reset(DeviceState *ds)
 {
-    l552_dma *s = FROM_SYSBUS(l552_dma, SYS_BUS_DEVICE(ds));
+    //l552_dma *s = FROM_SYSBUS(l552_dma, SYS_BUS_DEVICE(ds));
+    struct l552_dma *s = OBJECT_CHECK(struct l552_dma, SYS_BUS_DEVICE(ds), "l552_dma");
 
     memset(&s->ifcr, 0, sizeof(s->ifcr));
 
@@ -396,11 +404,11 @@ static void
 l552_dma_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
-    SysBusDeviceClass *sc = SYS_BUS_DEVICE_CLASS(klass);
-    sc->init = l552_dma_init;
+    // SysBusDeviceClass *sc = SYS_BUS_DEVICE_CLASS(klass);
+    dc->realize = l552_dma_realize;
     dc->reset = l552_dma_reset;
     //TODO: fix this: dc->no_user = 1;
-    dc->props = l552_dma_properties;
+    dc->props_ = l552_dma_properties;
 }
 
 static const TypeInfo

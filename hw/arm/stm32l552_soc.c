@@ -34,6 +34,7 @@
 #include "hw/arm/stm32/stm32lxxx_syscfg.h"
 #include "hw/arm/asic_sim/nn1002.h"
 #include "hw/ssi/ssi.h"
+#include "hw/qdev-core.h"
 
 
 #if 0
@@ -694,6 +695,63 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
     s->asic[0].asic_num=1;
     s->asic[1].asic_num=2;
     s->asic[2].asic_num=3;
+/*
+
+
+DeviceState *stm32_init_periph(DeviceState *dev, stm32_periph_t periph,
+                                        hwaddr addr, qemu_irq irq)
+{
+    qdev_init_nofail(dev);
+    sysbus_mmio_map(SYS_BUS_DEVICE(dev), 0, addr);
+    if (irq) {
+        sysbus_connect_irq(SYS_BUS_DEVICE(dev), 0, irq);
+    }
+    return dev;
+}
+
+////////////////////////////////////////////
+ gpio_realize_peripheral(ARMv7MState *cpu, stm32fxxx_gpio *dev, hwaddr base, unsigned int irqnr, Error **errp){
+    SysBusDevice *busdev;
+     DeviceState *armv7m;
+
+    //object_property_set_bool(OBJECT(dev), "realized", true,  &error_fatal);
+    if (!sysbus_realize(SYS_BUS_DEVICE(dev), errp)) {
+        return 0;
+    }
+    busdev = SYS_BUS_DEVICE(dev);
+    armv7m = DEVICE(cpu);
+    sysbus_mmio_map(busdev, 0, base);
+    sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(armv7m, irqnr));
+
+    //MemoryRegion *flash_alias = g_new(MemoryRegion, 1);
+    //memory_region_init_alias(flash_alias, OBJECT(dev),
+    //                         "STM32L552.flash.alias", &dev->flash, 0,
+    //                         FLASH_SIZE);
+
+    return 0;
+
+*/
+       
+
+    DeviceState *dma1 = qdev_new("l552_dma");    
+     if (!sysbus_realize(SYS_BUS_DEVICE(dma1), &error_fatal)) {
+       // return 0;
+    }
+    sysbus_mmio_map(SYS_BUS_DEVICE(dma1), 0, 0x40020000);
+
+
+
+    DeviceState *dma2 = qdev_new("l552_dma");    
+     if (!sysbus_realize(SYS_BUS_DEVICE(dma2), &error_fatal)) {
+       // return 0;
+    }
+    sysbus_mmio_map(SYS_BUS_DEVICE(dma2), 0, 0x40020400);
+
+
+
+    //stm32_init_periph(dma1, STM32_DMA1, 0x40020000, NULL);
+    //sysbus_connect_irq(SYS_BUS_DEVICE(dma2), 0, qdev_get_gpio_in(nvic, STM32_DMA2_STREAM0_IRQ));
+    //sysbus_connect_irq(SYS_BUS_DEVICE(dma2), 1, qdev_get_gpio_in(nvic, STM32_DMA2_STREAM1_IRQ));
 
 
 /*
