@@ -40,6 +40,8 @@
 #include "hw/arm/stm32/stm32l552_adc.h"
 #include "hw/arm/stm32/stm32l552_flash.h"
 #include "hw/arm/asic_sim/nn1002.h"
+#include "hw/arm/stm32/stm32l552_dmamux.h"
+
 
 #define TYPE_STM32L552_SOC "stm32l552-soc"
 OBJECT_DECLARE_SIMPLE_TYPE(STM32L552State, STM32L552_SOC)
@@ -85,6 +87,8 @@ struct STM32L552State {
     stm32l552_pwr     pwr;
     STM32L552RccState rcc;
     STM32L552RtcState rtc;
+
+    STM32L55DmaMuxState dmamux;
 
     MemoryRegion ccm;
     MemoryRegion sram;

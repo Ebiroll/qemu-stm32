@@ -37,8 +37,7 @@
 #include "hw/qdev-core.h"
 
 
-#if 0
-{
+typedef enum IrqNum {
 /* =======================================  ARM Cortex-M33 Specific Interrupt Numbers  ======================================= */
   Reset_IRQn                = -15,    /*!< -15 Reset Vector, invoked on Power up and warm reset             */
   NonMaskableInt_IRQn       = -14,    /*!< -14 Non maskable Interrupt, cannot be stopped or preempted       */
@@ -158,9 +157,9 @@
   DFSDM1_FLT2_IRQn          = 104,    /*!< DFSDM1 Filter 2 global interrupt                                  */
   DFSDM1_FLT3_IRQn          = 105,    /*!< DFSDM1 Filter 3 global interrupt                                  */
   UCPD1_IRQn                = 106,    /*!< UCPD1 global interrupt                                            */
-  ICACHE_IRQn               = 107,    /*!< Instruction cache global interrupt                                */
+  ICACHE_IRQn               = 107    /*!< Instruction cache global interrupt                                */
+} IrqNum;
 
-#endif
 
 
 
@@ -322,6 +321,9 @@ static void stm32l552_soc_initfn(Object *obj)
 
     object_initialize_child(obj, "stm32l552-rcc", &s->rcc, TYPE_STM32L552_RCC);
     object_initialize_child(obj, "stm32fxxx-rtc", &s->rtc, TYPE_STM32L552_RTC);
+    object_initialize_child(obj, "stm32l552-dmamux", &s->dmamux, TYPE_STM32L552_DMAMUX);
+
+    // 
     object_initialize_child(obj, "stm32-pwr", &s->pwr, TYPE_STM32L552_PWR);
 
 
@@ -595,7 +597,15 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
     }
     busdev = SYS_BUS_DEVICE(dev);
     sysbus_mmio_map(busdev, 0, 0x40002800);
+    /* DMAMux Device*/
+    dev = DEVICE(&s->dmamux);
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->dmamux), errp)) {
+        return;
+    }
+    busdev = SYS_BUS_DEVICE(dev);
+    sysbus_mmio_map(busdev, 0, 0x40020800);
 
+    ////
     dev = DEVICE(&s->pwr);
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->pwr), errp)) {
         return;
@@ -738,7 +748,14 @@ DeviceState *stm32_init_periph(DeviceState *dev, stm32_periph_t periph,
        // return 0;
     }
     sysbus_mmio_map(SYS_BUS_DEVICE(dma1), 0, 0x40020000);
-
+    sysbus_connect_irq(SYS_BUS_DEVICE(dma1), 0, qdev_get_gpio_in(armv7m, DMA1_Channel1_IRQn));
+    sysbus_connect_irq(SYS_BUS_DEVICE(dma1), 1, qdev_get_gpio_in(armv7m, DMA1_Channel2_IRQn));
+    sysbus_connect_irq(SYS_BUS_DEVICE(dma1), 2, qdev_get_gpio_in(armv7m, DMA1_Channel3_IRQn));
+    sysbus_connect_irq(SYS_BUS_DEVICE(dma1), 3, qdev_get_gpio_in(armv7m, DMA1_Channel4_IRQn));
+    sysbus_connect_irq(SYS_BUS_DEVICE(dma1), 4, qdev_get_gpio_in(armv7m, DMA1_Channel5_IRQn));
+    sysbus_connect_irq(SYS_BUS_DEVICE(dma1), 5, qdev_get_gpio_in(armv7m, DMA1_Channel6_IRQn));
+    sysbus_connect_irq(SYS_BUS_DEVICE(dma1), 6, qdev_get_gpio_in(armv7m, DMA1_Channel7_IRQn));
+    sysbus_connect_irq(SYS_BUS_DEVICE(dma1), 7, qdev_get_gpio_in(armv7m, DMA1_Channel8_IRQn));
 
 
     DeviceState *dma2 = qdev_new("l552_dma");    
@@ -747,12 +764,18 @@ DeviceState *stm32_init_periph(DeviceState *dev, stm32_periph_t periph,
     }
     sysbus_mmio_map(SYS_BUS_DEVICE(dma2), 0, 0x40020400);
 
-
+    sysbus_connect_irq(SYS_BUS_DEVICE(dma2), 0, qdev_get_gpio_in(armv7m, DMA2_Channel1_IRQn));
+    sysbus_connect_irq(SYS_BUS_DEVICE(dma2), 1, qdev_get_gpio_in(armv7m, DMA2_Channel2_IRQn));
+    sysbus_connect_irq(SYS_BUS_DEVICE(dma2), 2, qdev_get_gpio_in(armv7m, DMA2_Channel3_IRQn));
+    sysbus_connect_irq(SYS_BUS_DEVICE(dma2), 3, qdev_get_gpio_in(armv7m, DMA2_Channel4_IRQn));
+    sysbus_connect_irq(SYS_BUS_DEVICE(dma2), 4, qdev_get_gpio_in(armv7m, DMA2_Channel5_IRQn));
+    sysbus_connect_irq(SYS_BUS_DEVICE(dma2), 5, qdev_get_gpio_in(armv7m, DMA2_Channel6_IRQn));
+    sysbus_connect_irq(SYS_BUS_DEVICE(dma2), 6, qdev_get_gpio_in(armv7m, DMA2_Channel7_IRQn));
+    sysbus_connect_irq(SYS_BUS_DEVICE(dma2), 7, qdev_get_gpio_in(armv7m, DMA2_Channel8_IRQn));
 
     //stm32_init_periph(dma1, STM32_DMA1, 0x40020000, NULL);
     //sysbus_connect_irq(SYS_BUS_DEVICE(dma2), 0, qdev_get_gpio_in(nvic, STM32_DMA2_STREAM0_IRQ));
     //sysbus_connect_irq(SYS_BUS_DEVICE(dma2), 1, qdev_get_gpio_in(nvic, STM32_DMA2_STREAM1_IRQ));
-
 
 /*
 "Name","Start","End","Length","R","W","X","Volatile","Overlay","Type","Initialized","Byte Source","Source","Comment"

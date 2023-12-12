@@ -176,6 +176,9 @@ static void stm32f2xx_spi_write(void *opaque, hwaddr addr,
             // Fake IRQ!
             qemu_irq_raise(s->irq);
         }
+        if (value == 0x1708) {
+            // TODO: START DMA!!
+        }
         // CLEAR_BIT(hspi->Instance->CR2, SPI_CR2_LDMATX);
         //  Value: 0x1700
         return;
