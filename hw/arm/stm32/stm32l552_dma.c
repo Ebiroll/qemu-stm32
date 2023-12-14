@@ -44,8 +44,60 @@
 #define DPRINTF(fmt, ...)
 #endif
 
+#define R_DMA_Sx_COUNT           8
+#define R_DMA_Sx_REGS            5
+
+#define R_DMA_Sx             (0x08 / 4)
+
+#define R_DMA_ISR           (0x00 / 4)
+//#define R_DMA_HISR           (0x04 / 4)//r
+
+#define R_DMA_IFCR          (0x04 / 4)
+//#define R_DMA_HIFCR          (0x08 / 4)//w
+#define R_DMA_ISR_GIF       (1 << 0)
+// Transfer complete interrupt flag
+#define R_DMA_ISR_TCIF       (1 << 1)
+#define R_DMA_ISR_HTIF       (1 << 2)
+#define R_DMA_ISR_TEIF       (1 << 3)
+
+
+// Per stream register
+#define R_DMA_SxISR          (0x00 / 4)
+#define R_DMA_SxIFCR         (0x04 / 4)
+
+#define R_DMA_SxCR           ((0x08-0x08) / 4)
+#define R_DMA_SxCR_EN        0x00000001
+#define R_DMA_SxNDTR         ((0x0C-0x08) / 4)
+#define R_DMA_SxPAR          ((0x10-0x08) / 4)
+#define R_DMA_SxM0AR         ((0x14-0x08) / 4)
+#define R_DMA_SxM1AR         ((0x18-0x08) / 4)
+
+#define R_DMA_MAX            (0xd0 / 4)
+
+
+
+// Unhandled registers, one per channel
+#define R_DMA_SxCCR2         (0x1C / 4)
+#define R_DMA_SxCNDTR2       (0x20 / 4)
+#define R_DMA_SxPAR2         (0x24 / 4)
+#define R_DMA_SxM0AR2        (0x28 / 4)
+#define R_DMA_SxM1AR2        (0x2C / 4)
+
+#define R_DMA_SxCCR3         (0x30 / 4)
+#define R_DMA_SxNDTR3        (0x34 / 4)
+#define R_DMA_SxPAR3         (0x38 / 4)
+#define R_DMA_SxM0AR3        (0x3C / 4)
+#define R_DMA_SxM1AR3        (0x40 / 4)
+#define R_DMA_SxCCR4         (0x44 / 4)
+#define R_DMA_SxCNDTR4       (0x48 / 4)
+#define R_DMA_SxPAR4         (0x4C / 4)
+#define R_DMA_SxM0AR4        (0x50 / 4)
+#define R_DMA_SxM1AR4        (0x54 / 4)
+#define R_DMA_SxCCR5         (0x58 / 4)
+
 
 /* Common interrupt status / clear registers. */
+/*
 #define R_DMA_LISR           (0x00 / 4)
 #define R_DMA_HISR           (0x04 / 4)//r
 #define R_DMA_LIFCR          (0x08 / 4)
@@ -56,20 +108,20 @@
 #define R_DMA_ISR_HTIF     (1 << 4)
 #define R_DMA_ISR_TCIF     (1 << 5)
 
-/* Per-stream registers. */
+//  Per-stream registers. 
 #define R_DMA_Sx             (0x10 / 4)
 #define R_DMA_Sx_COUNT           8
 #define R_DMA_Sx_REGS            6
 #define R_DMA_SxCR           (0x00 / 4)
 #define R_DMA_SxCR_EN   0x00000001
 #define R_DMA_SxNDTR         (0x04 / 4)
-#define R_DMA_SxNDTR_EN 0x00000001
 #define R_DMA_SxPAR          (0x08 / 4)
 #define R_DMA_SxM0AR         (0x0c / 4)
 #define R_DMA_SxM1AR         (0x10 / 4)
 #define R_DMA_SxFCR          (0x14 / 4)
 
 #define R_DMA_MAX            (0xd0 / 4)
+*/
 
 typedef struct l552_dma_stream {
     qemu_irq irq;
@@ -88,11 +140,14 @@ typedef struct l552_dma {
     SysBusDevice busdev;
     MemoryRegion iomem;
 
-    uint32_t ifcr[R_DMA_HIFCR - R_DMA_LIFCR + 1];
+    //uint32_t ifcr[R_DMA_HIFCR - R_DMA_LIFCR + 1];
+    uint32_t ifcr;
+    uint32_t active_stream;
+
     l552_dma_stream stream[R_DMA_Sx_COUNT]; 
 } l552_dma;
 
-/* Pack ISR bits from four streams, for {L,H}ISR. */
+/* Pack ISR bits from four streams, for {L,H}ISR. 
 static uint32_t
 l552_dma_pack_isr(struct l552_dma *s, int start_stream)
 {
@@ -104,6 +159,23 @@ l552_dma_pack_isr(struct l552_dma *s, int start_stream)
     }
     return r;
 }
+*/
+static uint32_t l552_dma_pack_isr(struct l552_dma *s, int start_stream)
+{
+    uint32_t r = 0;
+    int i;
+
+    for (i = 0; i < 8; i++) {
+        // Extract the ISR for the current stream
+        uint32_t stream_isr = s->stream[i + start_stream].isr;
+
+        // Align the ISR for the specific stream
+        // Shift left by 4 bits for each stream, as each stream's ISR occupies 4 bits
+        r |= stream_isr << (4 * i);
+    }
+    return r;
+}
+
 
 /* Per-stream read. */
 static uint32_t
@@ -115,27 +187,27 @@ l552_dma_stream_read(l552_dma_stream *s, int stream_no, uint32_t reg)
         return s->cr;
     case R_DMA_SxNDTR:
         DPRINTF("   %s: stream: %d, register NDTR (UNIMPLEMENTED)\n", __func__, stream_no);
-        qemu_log_mask(LOG_UNIMP, "f2xx dma unimp read reg NDTR\n");
+        qemu_log_mask(LOG_UNIMP, "l552 dma unimp read reg NDTR\n");
         return 0;
     case R_DMA_SxPAR:
         DPRINTF("   %s: stream: %d, register PAR (UNIMPLEMENTED)\n", __func__, stream_no);
-        qemu_log_mask(LOG_UNIMP, "f2xx dma unimp read reg PAR\n");
+        qemu_log_mask(LOG_UNIMP, "l552 dma unimp read reg PAR\n");
         return 0;
     case R_DMA_SxM0AR:
         DPRINTF("   %s: stream: %d, register M0AR (UNIMPLEMENTED)\n", __func__, stream_no);
-        qemu_log_mask(LOG_UNIMP, "f2xx dma unimp read reg M0AR\n");
+        qemu_log_mask(LOG_UNIMP, "l552 dma unimp read reg M0AR\n");
         return 0;
     case R_DMA_SxM1AR:
         DPRINTF("   %s: stream: %d, register M1AR (UNIMPLEMENTED)\n", __func__, stream_no);
-        qemu_log_mask(LOG_UNIMP, "f2xx dma unimp read reg M1AR\n");
+        qemu_log_mask(LOG_UNIMP, "l552 dma unimp read reg M1AR\n");
         return 0;
-    case R_DMA_SxFCR:
-        DPRINTF("   %s: stream: %d, register FCR (UNIMPLEMENTED)\n", __func__, stream_no);
-        qemu_log_mask(LOG_UNIMP, "f2xx dma unimp read reg FCR\n");
-        return 0;
+    //case R_DMA_SxCCR2:
+    //    DPRINTF("   %s: stream: %d, register FCR (UNIMPLEMENTED)\n", __func__, stream_no);
+    //   qemu_log_mask(LOG_UNIMP, "l552 dma unimp read reg CCR2\n");
+    //    return 0;
     default:
         DPRINTF("   %s: stream: %d, register 0x%02x\n", __func__, stream_no, reg<<2);
-        qemu_log_mask(LOG_UNIMP, "f2xx dma unimp read stream reg 0x%02x\n",
+        qemu_log_mask(LOG_UNIMP, "l552 dma unimp read stream reg 0x%02x\n",
           (unsigned int)reg<<2);
     }
     return 0;
@@ -151,33 +223,34 @@ l552_dma_read(void *arg, hwaddr addr, unsigned int size)
     DPRINTF("%s: addr: 0x%lx, size:%d...\n", __func__, addr, size);
 
     if (size != 4) {
-        qemu_log_mask(LOG_UNIMP, "f2xx crc only supports 4-byte reads\n");
+        qemu_log_mask(LOG_UNIMP, "l552 crc only supports 4-byte reads\n");
         return 0;
     }
 
     addr >>= 2;
     if (addr >= R_DMA_MAX) {
-        qemu_log_mask(LOG_GUEST_ERROR, "invalid read f2xx dma register 0x%02x\n",
+        qemu_log_mask(LOG_GUEST_ERROR, "invalid read l552 dma register 0x%02x\n",
                       (unsigned int)addr << 2);
         result = 0;
     } else {
         switch(addr) {
-        case R_DMA_LISR:
+        case R_DMA_ISR:
             DPRINTF("   %s: register LISR\n", __func__);
             result = l552_dma_pack_isr(s, 0);
             break;
-        case R_DMA_HISR:
-            DPRINTF("   %s: register HISR\n", __func__);
-            result = l552_dma_pack_isr(s, 4);
-            break;
-        case R_DMA_LIFCR:
+        //case R_DMA_HISR:
+        //    DPRINTF("   %s: register HISR\n", __func__);
+        //    result = l552_dma_pack_isr(s, 4);
+        //    break;
+        case R_DMA_IFCR:
             DPRINTF("   %s: register LIFCR\n", __func__);
-            result = s->ifcr[addr - R_DMA_LIFCR];
+            //result = s->ifcr[addr - R_DMA_LIFCR];
+            result = s->ifcr;
             break;
-        case R_DMA_HIFCR:
-            DPRINTF("   %s: register HIFCR\n", __func__);
-            result = s->ifcr[addr - R_DMA_LIFCR];
-            break;
+        //case R_DMA_HIFCR:
+        //    DPRINTF("   %s: register HIFCR\n", __func__);
+        //    result = s->ifcr[addr - R_DMA_LIFCR];
+        //    break;
         default:
             /* Only per-stream registers remain. */
             addr -= R_DMA_Sx;
@@ -200,14 +273,15 @@ l552_dma_stream_start(l552_dma_stream *s, int stream_no)
     int msize = msize_table[(s->cr >> 13) & 0x3];
 
     DPRINTF("%s: stream: %d\n", __func__, stream_no);
+   
 
     if (msize == 0) {
-        qemu_log_mask(LOG_GUEST_ERROR, "f2xx dma: invalid MSIZE\n");
+        qemu_log_mask(LOG_GUEST_ERROR, "l552 dma: invalid MSIZE\n");
         return;
     }
     /* XXX Skip USART, as pacing control is not yet in place. */
     if (s->par == 0x40011004) {
-        qemu_log_mask(LOG_UNIMP, "f2xx dma: skipping USART\n");
+        qemu_log_mask(LOG_UNIMP, "l552 dma: skipping USART\n");
         return;
     }
 
@@ -222,6 +296,7 @@ l552_dma_stream_start(l552_dma_stream *s, int stream_no)
     /* Transfer complete. */
     s->cr &= ~R_DMA_SxCR_EN;
     s->isr |= R_DMA_ISR_TCIF;
+
     qemu_set_irq(s->irq, 1);
 }
 
@@ -239,8 +314,8 @@ l552_dma_stream_write(l552_dma_stream *s, int stream_no, uint32_t addr, uint32_t
         break;
     case R_DMA_SxNDTR:
         DPRINTF("%s: stream: %d, register NDTR, data:0x%x\n", __func__, stream_no, data);
-        if (s->cr & R_DMA_SxNDTR_EN) {
-            qemu_log_mask(LOG_GUEST_ERROR, "f2xx dma write to NDTR while enabled\n");
+        if (s->cr & R_DMA_SxCR_EN) {
+            qemu_log_mask(LOG_GUEST_ERROR, "l552 dma write to NDTR while enabled\n");
             return;
         }
         s->ndtr = data;
@@ -257,13 +332,60 @@ l552_dma_stream_write(l552_dma_stream *s, int stream_no, uint32_t addr, uint32_t
         DPRINTF("%s: stream: %d, register M1AR, data:0x%x\n", __func__, stream_no, data);
         s->m1ar = data;
         break;
-    case R_DMA_SxFCR:
-        DPRINTF("%s: stream: %d, register FCR (UINIMPLEMENTED), data:0x%x\n", __func__,
+    case R_DMA_SxCCR2:
+        DPRINTF("%s: stream: %d, register CCR2 (UINIMPLEMENTED), data:0x%x\n", __func__,
                         stream_no, data);
-        qemu_log_mask(LOG_UNIMP, "f2xx dma SxFCR unimplemented\n");
+        qemu_log_mask(LOG_UNIMP, "l552 dma SxCCR2 unimplemented\n");
         break;
     }
 }
+
+void
+clear_interrupt(l552_dma *s,uint64_t data);
+
+void
+clear_interrupt(l552_dma *s,uint64_t data) {
+
+        s->stream[s->active_stream].isr = 0;
+        qemu_set_irq(s->stream[s->active_stream].irq, 0);
+
+        if (data & (1 << 8)) {
+            s->stream[7].isr = 0;
+            qemu_set_irq(s->stream[7].irq, 0);
+        }
+        if (data & (1 << 7)) {
+            s->stream[6].isr = 0;
+            qemu_set_irq(s->stream[6].irq, 0);
+        }
+        if (data & (1 << 6)) {
+            s->stream[5].isr = 0;
+            qemu_set_irq(s->stream[5].irq, 0);
+        }
+        if (data & (1 << 5)) {
+            s->stream[4].isr = 0;
+            qemu_set_irq(s->stream[4].irq, 0);
+            s->stream[3].isr = 0;
+            qemu_set_irq(s->stream[3].irq, 0);
+        }
+        if (data & (1 << 4)) {
+            s->stream[3].isr = 0;
+            qemu_set_irq(s->stream[3].irq, 0);
+        }
+        if (data & (1 << 3)) {
+            s->stream[2].isr = 0;
+            qemu_set_irq(s->stream[2].irq, 0);
+        }
+        if (data & (1 << 2)) {
+            s->stream[1].isr = 0;
+            qemu_set_irq(s->stream[1].irq, 0);
+        }
+        if (data & (1 << 1)) {
+            s->stream[0].isr = 0;
+            qemu_set_irq(s->stream[0].irq, 0);
+        }
+
+}
+
 
 /* Register write. */
 static void
@@ -276,35 +398,40 @@ l552_dma_write(void *arg, hwaddr addr, uint64_t data, unsigned int size)
 
     /* XXX Check DMA peripheral clock enable. */
     if (size != 4) {
-        qemu_log_mask(LOG_UNIMP, "f2xx dma only supports 4-byte writes\n");
+        qemu_log_mask(LOG_UNIMP, "l552 dma only supports 4-byte writes\n");
         return;
     }
 
     addr >>= 2;
     if (addr >= R_DMA_MAX) {
-        qemu_log_mask(LOG_GUEST_ERROR, "invalid write f2xx dma register 0x%02x\n",
+        qemu_log_mask(LOG_GUEST_ERROR, "invalid write l552 dma register 0x%02x\n",
           (unsigned int)addr << 2);
         return;
     }
     if (addr >= R_DMA_Sx && addr <= 0xcc) {
         int num = (addr - R_DMA_Sx) / R_DMA_Sx_REGS;
+        s->active_stream = num;
         l552_dma_stream_write(&s->stream[num], num,
           (addr - R_DMA_Sx) % R_DMA_Sx_REGS, data);
         return;
     }
     switch(addr) {
-    case R_DMA_LISR:
+    case R_DMA_ISR:
         DPRINTF("%s: register LISR (READ-ONLY), data: 0x%lx\n", __func__, data);
-        qemu_log_mask(LOG_GUEST_ERROR, "f2xx dma: invalid write to ISR\n");
+        qemu_log_mask(LOG_GUEST_ERROR, "l552 dma: invalid write to ISR\n");
         break;
-    case R_DMA_HISR:
-        DPRINTF("%s: register HISR (READ-ONLY), data: 0x%lx\n", __func__, data);
-        qemu_log_mask(LOG_GUEST_ERROR, "f2xx dma: invalid write to ISR\n");
-        break;
-    case R_DMA_LIFCR:
+//    case R_DMA_HISR:
+//        DPRINTF("%s: register HISR (READ-ONLY), data: 0x%lx\n", __func__, data);
+//        qemu_log_mask(LOG_GUEST_ERROR, "l552 dma: invalid write to ISR\n");
+//        break;
+    case R_DMA_IFCR:
         DPRINTF("%s: register LIFCR, data: 0x%lx\n", __func__, data);
         // Any interrupt clear write to stream x clears all interrupts for that stream
-        s->ifcr[addr - R_DMA_LIFCR] = data;
+        //s->ifcr[addr - R_DMA_LIFCR] = data;
+        s->ifcr = data;
+        clear_interrupt(s,data);
+        break;
+        /*
         if (data & 0x0f400000) {
             s->stream[3].isr = 0;
             qemu_set_irq(s->stream[3].irq, 0);
@@ -322,6 +449,8 @@ l552_dma_write(void *arg, hwaddr addr, uint64_t data, unsigned int size)
             qemu_set_irq(s->stream[0].irq, 0);
         }
         break;
+        */
+#if 0 
     case R_DMA_HIFCR:
         DPRINTF("%s: register HIFCR, data: 0x%lx\n", __func__, data);
         // Any interrupt clear write to stream x clears all interrupts for that stream
@@ -343,8 +472,9 @@ l552_dma_write(void *arg, hwaddr addr, uint64_t data, unsigned int size)
             qemu_set_irq(s->stream[4].irq, 0);
         }
         break;
+#endif        
     default:
-        qemu_log_mask(LOG_UNIMP, "f2xx dma unimpl write reg 0x%02x\n",
+        qemu_log_mask(LOG_UNIMP, "l552 dma unimpl write reg 0x%02x\n",
           (unsigned int)addr << 2);
     }
 }

@@ -30,6 +30,83 @@
 
 #define MUX_CCR    0x00
 
+// /* Configure the source, destination address and the data length & clear flags*/
+//    DMA_SetConfig(hdma, SrcAddress, DstAddress, DataLength);
+
+
+//  stm32l55_dmamux_write: Invalid write to offset 0x84
+// hdma->DMAmuxChannelStatus->CFR = hdma->DMAmuxChannelStatusMask;
+
+//(qemu) STM32L552_DMA: l552_dma_write: register HISR (READ-ONLY), data: 0x1
+//f2xx dma: invalid write to ISR
+//  /* Clear all flags */
+//  hdma->DmaBaseAddress->IFCR = (DMA_ISR_GIF1 << (hdma->ChannelIndex & 0x1CU));
+
+//(qemu) STM32L552_DMA: l552_dma_write: register HIFCR, data: 0x12
+// /* Configure DMA Channel data length */
+//  hdma->Instance->CNDTR = DataLength;
+
+// (qemu) STM32L552_DMA: l552_dma_stream_write: stream: 0, register CR, data:0x4001300c
+///* Configure DMA Channel source address */
+//    hdma->Instance->CPAR = SrcAddress;
+
+//  
+// (qemu) STM32L552_DMA: l552_dma_stream_write: stream: 0, register NDTR, data:0x2002fe98
+//  /* Configure DMA Channel destination address */
+//    hdma->Instance->CM0AR = DstAddress;
+//////////////////////////////////////////////////////////////////////////////////
+//
+//   if((hdma->DMAmuxChannel->CCR & DMAMUX_CxCR_SE) != 0U)
+// (qemu) stm32l55_dmamux_read: Invalid read from offset 0x20
+// stm32l55_dmamux_read: Invalid read from offset 0x20
+//
+// 
+// (qemu) STM32L552_DMA: l552_dma_read: addr: 0x8, size:4...
+// STM32L552_DMA:    l552_dma_read: register LIFCR
+// STM32L552_DMA:     l552_dma_read: result:0x8e
+// STM32L552_DMA: l552_dma_write: register LIFCR, data: 0x8f
+// /* Enable the Peripheral */
+//    __HAL_DMA_ENABLE(hdma);  
+// #define __HAL_DMA_ENABLE(__HANDLE__)        ((__HANDLE__)->Instance->CCR |=  DMA_CCR_EN)
+//
+
+
+//void HAL_DMA_IRQHandler(DMA_HandleTypeDef *hdma)
+//{
+//  uint32_t flag_it = hdma->DmaBaseAddress->ISR;
+//  uint32_t source_it = hdma->Instance->CCR;
+
+//  uint32_t  compare=(DMA_FLAG_TC1 << (hdma->ChannelIndex & 0x1CU));
+//  uint32_t  source=DMA_IT_TC;
+
+// flag_it = 119
+// source_it = 143
+// compare = 2
+// source = 2
+
+// Full DMA
+// flag_it = 115
+// source_it = 139
+// compare = 2
+// source = 2
+
+//      if(hdma->XferCpltCallback != NULL)
+//      {
+//        /* Transfer complete callback */
+//        hdma->XferCpltCallback(hdma);
+//      }
+// SPI_DMAReceiveCplt
+
+//  SPI_EndRxTransaction
+// hspi->State = HAL_SPI_STATE_READY;
+// HAL_SPI_RxCpltCallback
+//
+// DMA2
+// flag_it = 112
+// source_it = 155
+// compare = 32
+// source = 2
+
 #define RG0CR_OFFSET 0x100
 #define RG1CR_OFFSET 0x104
 #define RG2CR_OFFSET 0x108
