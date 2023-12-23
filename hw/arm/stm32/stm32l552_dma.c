@@ -321,7 +321,7 @@ l552_dma_synced_stream_start(l552_dma *all,l552_dma_stream *s1,l552_dma_stream *
 
 /* Start a DMA transfer for a given stream. */
 // Only DMA on hspi is implemented, so only synced transfers avaliable
-#if 0
+#if 1
 static void
 l552_dma_stream_start(l552_dma_stream *s, int stream_no)
 {
@@ -371,8 +371,12 @@ l552_dma_stream_write(l552_dma_stream *s,l552_dma *all, int stream_no, uint32_t 
                 all->stream1 = -1;
                 all->active_stream = 0;
             } else {
-                //s->cr &= ~R_DMA_SxCR_EN;
-                all->stream1 = stream_no;
+                // TX Only stream
+                if (stream_no==1) {
+                    l552_dma_stream_start(s, stream_no);
+                } else {
+                    all->stream1 = stream_no;
+                }
             }
         }
         s->cr = data;
