@@ -144,7 +144,8 @@ typedef struct l552_dma {
     uint32_t ifcr;
     uint32_t active_stream;
 
-    l552_dma_stream stream[R_DMA_Sx_COUNT]; 
+    l552_dma_stream stream[R_DMA_Sx_COUNT];
+    int stream1;
 } l552_dma;
 
 /* Pack ISR bits from four streams, for {L,H}ISR. 
@@ -267,6 +268,61 @@ l552_dma_read(void *arg, hwaddr addr, unsigned int size)
 
 /* Start a DMA transfer for a given stream. */
 static void
+l552_dma_synced_stream_start(l552_dma *all,l552_dma_stream *s1,l552_dma_stream *s2, int stream_no1, int stream_no2)
+{
+    uint8_t buf[4];
+    int msize1 = msize_table[(s1->cr >> 13) & 0x3];
+    int msize2 = msize_table[(s2->cr >> 13) & 0x3];
+
+    DPRINTF("%s: stream: %d\n", __func__, stream_no1);
+    DPRINTF("%s: stream: %d\n", __func__, stream_no2);
+   
+
+    if (msize1 == 0  || msize2 == 0) {
+        qemu_log_mask(LOG_GUEST_ERROR, "l552 dma: invalid MSIZE\n");
+        return;
+    }
+    /* XXX Skip USART, as pacing control is not yet in place. */
+    if (s1->par == 0x40011004) {
+        qemu_log_mask(LOG_UNIMP, "l552 dma: skipping USART\n");
+        return;
+    }
+
+    /* XXX hack do the entire transfer here for now. */
+    DPRINTF("%s: transferring %d x %d byte(s) from 0x%08x to 0x%08x\n", __func__, s1->ndtr,
+              msize1, s1->m0ar, s1->par);
+    DPRINTF("%s: transferring %d x %d byte(s) from 0x%08x to 0x%08x\n", __func__, s2->ndtr,
+              msize2, s2->m0ar, s2->par);
+
+    while (s1->ndtr--) {
+        cpu_physical_memory_read(s1->m0ar, buf, msize1);
+        cpu_physical_memory_write(s1->par, buf, msize1);
+        //cpu_physical_memory_read(s2->m0ar, buf, msize2);
+        //cpu_physical_memory_write(s2->par, buf, msize2);
+        cpu_physical_memory_read(s2->par, buf, msize2);
+        cpu_physical_memory_write(s2->m0ar, buf, msize2);
+        s1->m0ar += msize1;
+        s2->m0ar += msize2;
+    }
+    /* Transfer complete. */
+    s1->cr &= ~R_DMA_SxCR_EN;
+    s1->isr |= R_DMA_ISR_TCIF;
+ 
+    all->active_stream = stream_no1;
+    qemu_set_irq(s1->irq, 1);
+
+    s2->cr &= ~R_DMA_SxCR_EN;
+    s2->isr |= R_DMA_ISR_TCIF;
+    all->active_stream = stream_no2;
+    qemu_set_irq(s2->irq, 1);
+
+}
+
+
+/* Start a DMA transfer for a given stream. */
+// Only DMA on hspi is implemented, so only synced transfers avaliable
+#if 0
+static void
 l552_dma_stream_start(l552_dma_stream *s, int stream_no)
 {
     uint8_t buf[4];
@@ -299,16 +355,25 @@ l552_dma_stream_start(l552_dma_stream *s, int stream_no)
 
     qemu_set_irq(s->irq, 1);
 }
+#endif
 
 /* Per-stream register write. */
 static void
-l552_dma_stream_write(l552_dma_stream *s, int stream_no, uint32_t addr, uint32_t data)
+l552_dma_stream_write(l552_dma_stream *s,l552_dma *all, int stream_no, uint32_t addr, uint32_t data)
 {
     switch (addr) {
     case R_DMA_SxCR:
         DPRINTF("%s: stream: %d, register CR, data:0x%x\n", __func__, stream_no, data);
         if ((s->cr & R_DMA_SxCR_EN) == 0 && (data & R_DMA_SxCR_EN) != 0) {
-            l552_dma_stream_start(s, stream_no);
+            if (all->stream1!=-1 && all->stream1 !=stream_no) {
+                // l552_dma_stream_start(s, stream_no);
+                l552_dma_synced_stream_start(all,&all->stream[all->active_stream],s,all->active_stream,stream_no);
+                all->stream1 = -1;
+                all->active_stream = 0;
+            } else {
+                //s->cr &= ~R_DMA_SxCR_EN;
+                all->stream1 = stream_no;
+            }
         }
         s->cr = data;
         break;
@@ -346,40 +411,40 @@ clear_interrupt(l552_dma *s,uint64_t data);
 void
 clear_interrupt(l552_dma *s,uint64_t data) {
 
-        s->stream[s->active_stream].isr = 0;
-        qemu_set_irq(s->stream[s->active_stream].irq, 0);
+        //s->stream[s->active_stream].isr = 0;
+        //qemu_set_irq(s->stream[s->active_stream].irq, 0);
 
-        if (data & (1 << 8)) {
+        if (data & (0xf << 28)) {
             s->stream[7].isr = 0;
             qemu_set_irq(s->stream[7].irq, 0);
         }
-        if (data & (1 << 7)) {
+        if (data & (0xf << 24)) {
             s->stream[6].isr = 0;
             qemu_set_irq(s->stream[6].irq, 0);
         }
-        if (data & (1 << 6)) {
+        if (data & (0xf << 20)) {
             s->stream[5].isr = 0;
             qemu_set_irq(s->stream[5].irq, 0);
         }
-        if (data & (1 << 5)) {
+        if (data & (0xf << 16)) {
             s->stream[4].isr = 0;
             qemu_set_irq(s->stream[4].irq, 0);
             s->stream[3].isr = 0;
             qemu_set_irq(s->stream[3].irq, 0);
         }
-        if (data & (1 << 4)) {
+        if (data & (0xf << 12)) {
             s->stream[3].isr = 0;
             qemu_set_irq(s->stream[3].irq, 0);
         }
-        if (data & (1 << 3)) {
+        if (data & (0xf << 8)) {
             s->stream[2].isr = 0;
             qemu_set_irq(s->stream[2].irq, 0);
         }
-        if (data & (1 << 2)) {
+        if (data & (0xf << 4)) {
             s->stream[1].isr = 0;
             qemu_set_irq(s->stream[1].irq, 0);
         }
-        if (data & (1 << 1)) {
+        if (data & (0xf << 0)) {
             s->stream[0].isr = 0;
             qemu_set_irq(s->stream[0].irq, 0);
         }
@@ -410,8 +475,7 @@ l552_dma_write(void *arg, hwaddr addr, uint64_t data, unsigned int size)
     }
     if (addr >= R_DMA_Sx && addr <= 0xcc) {
         int num = (addr - R_DMA_Sx) / R_DMA_Sx_REGS;
-        s->active_stream = num;
-        l552_dma_stream_write(&s->stream[num], num,
+        l552_dma_stream_write(&s->stream[num],s, num,
           (addr - R_DMA_Sx) % R_DMA_Sx_REGS, data);
         return;
     }
@@ -524,6 +588,9 @@ l552_dma_reset(DeviceState *ds)
         memset(&s->stream[i], 0, sizeof(l552_dma_stream));
         s->stream[i].irq = save;
     }
+
+    s->active_stream = 0;
+    s->stream1 = -1;
 }
 
 static Property l552_dma_properties[] = {
