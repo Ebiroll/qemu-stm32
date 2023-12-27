@@ -99,6 +99,13 @@ do { printf("STM32L552_RCC: " fmt , ## __VA_ARGS__); } while (0)
 #define RCC_CFGR_RESET_VALUE     0x00000000
 #define RCC_CFGR_OFFSET          0x08
 
+
+//#define PERIPH_BASE_NS           (0x40000000UL) /*!< Peripheral non-secure base address                 */
+//#define AHB3PERIPH_BASE_NS       (PERIPH_BASE_NS + 0x06020000UL)
+//#define RCC_BASE_NS              (AHB3PERIPH_BASE_NS + 0x0C00UL)
+// 0x40000000UL + 0x06020000UL + 0x0C00UL = 46020C00
+
+
 //#define RCC_CFGR_MCO2_START      30
 //#define RCC_CFGR_MCO2_MASK       0xC0000000
 //#define RCC_CFGR_MCO2PRE_START   27
