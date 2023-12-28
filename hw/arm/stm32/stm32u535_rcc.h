@@ -5,9 +5,8 @@
 
 
 
-#define TYPE_STM32L552_RCC "stm32l552-rcc"
-OBJECT_DECLARE_SIMPLE_TYPE(STM32L552RccState, STM32L552_RCC)
-
+#define TYPE_STM32U535_RCC "stm32u535-rcc"
+OBJECT_DECLARE_SIMPLE_TYPE(STM32u535RccState, STM32U535_RCC)
 
 
 enum {
@@ -86,7 +85,7 @@ enum {
 };
 
 /** RCC Base data structure */
-struct STM32L552RccState {
+struct STM32u535RccState {
     /* Inherited */
     SysBusDevice busdev;
 
@@ -100,8 +99,10 @@ struct STM32L552RccState {
 
     /* Peripheral clocks */
     Clk PERIPHCLK[STM32_PERIPH_COUNT],
-        HSICLK,
+    HSICLK,
     HSECLK,
+    MSICLK,
+    CSCLK,
     LSECLK,
     LSICLK,
     SYSCLK,
@@ -109,13 +110,16 @@ struct STM32L552RccState {
     RTCCLK,
 
     PLLM, /* Applies "M" division and "N" multiplication factors for PLL */
-    PLLCLK,
+    PLL2M,
+    PLL3M,
+    PLL1CLK,
+    PLL2CLK, 
+    PLL3CLK, 
+
     PLL48CLK,
 
     PLLI2SM, /* Applies "M" division and "N" multiplication factors for PLLI2S */
     PLLI2SCLK,
-    PLLSAI1CLK,
-    PLLSAI2CLK,
     
     HCLK, /* Output from AHB Prescaler */
     PCLK1, /* Output from APB1 Prescaler */
@@ -123,19 +127,13 @@ struct STM32L552RccState {
 
     /* Register Values */
     uint32_t
-    RCC_CIR,
     RCC_CR,  // RCC_ICSR,
     RCC_PLLCFGR,
+    RCC_PLLSAI2CFGR,
+    RCC_PLLSAI1CFGR,
     RCC_CIER,
     RCC_CIFR,
     RCC_CICR,
-    RCC_AHB1RSTR,
-    RCC_AHB2RSTR,
-    RCC_AHB3RSTR,
-    RCC_APB1RSTR1,
-    RCC_APB1RSTR,
-    RCC_APB1RSTR2,
-    RCC_APB2RSTR,
     RCC_APB1ENR,
     RCC_APB1ENR2,
     RCC_APB2ENR,
@@ -168,6 +166,10 @@ struct STM32L552RccState {
     RCC_AHB2ENR,
     RCC_AHB3ENR,
     RCC_CFGR_SW,
+    RCC_CFGR1,
+    RCC_CFGR2,
+    RCC_CFGR3,
+
     RCC_PLLI2SCFGR;
 
     uint8_t

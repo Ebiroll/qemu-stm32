@@ -8,30 +8,45 @@
 #define PWR_CR1  0x00
 #define PWR_CR2  0x04
 #define PWR_CR3  0x08
-#define PWR_CR4 0x0C
-#define PWR_SR1 0x10
-#define PWR_SR2 0x14
-#define PWR_SCR 0x18
-#define PWR_PUCRA 0x20
-#define PWR_PDCRA 0x24
-#define PWR_PUCRB 0x28
-#define PWR_PDCRB 0x2C
-#define PWR_PUCRC 0x30
-#define PWR_PDCRC 0x34
-#define PWR_PUCRD 0x38
-#define PWR_PDCRD 0x3C
-#define PWR_PUCRE 0x40
-#define PWR_PDCRE 0x44
-#define PWR_PUCRF 0x48
-#define PWR_PDCRF 0x4C
-#define PWR_PUCRG 0x50
-#define PWR_PDCRG 0x54
-#define PWR_PUCRH 0x58
-#define PWR_PDCRH 0x5C
-#define PWR_SECCFGR 0x78
-#define PWR_PRIVCFGR 0x80
-
-
+#define PWR_VOSR 0x0C
+#define PWR_SVMCR 0x10
+#define PWR_WUCR1 0x14
+#define PWR_WUCR2 0x18
+#define PWR_WUCR3 0x1C
+#define PWR_BDCR1 0x20
+#define PWR_BDCR2 0x24
+#define PWR_DBPR  0x28
+#define PWR_UCPDR 0x2C
+#define PWR_SECCFGR 0x30
+#define PWR_PRIVCFGR 0x34
+#define PWR_SR     0x38
+#define PWR_SVMSR  0x3C
+#define PWR_BDSR   0x40
+#define PWR_WUSR    0x44
+#define PWR_WUSCR   0x48    
+#define PWR_APCR    0x4C
+#define PWR_PUCRA   0x50    
+#define PWR_PDCRA   0x54
+#define PWR_PUCRB   0x58
+#define PWR_PDCRB  0x5C
+#define PWR_PUCRC  0x60
+#define PWR_PDCRC  0x64
+#define PWR_PUCRD  0x68
+#define PWR_PDCRD  0x6C
+#define PWR_PUCRE  0x70
+#define PWR_PDCRE  0x74
+#define PWR_PUCRF  0x78
+#define PWR_PDCRF  0x7C
+#define PWR_PUCRG  0x80
+#define PWR_PDCRG  0x84
+#define PWR_PUCRH  0x88
+#define PWR_PDCRH  0x8C
+#define PWR_PUCRI  0x90
+#define PWR_PDCRI  0x94
+#define PWR_PUCRJ  0x98
+#define PWR_PDCRJ  0x9C
+#define PWR_CR4    0xA8
+#define PWR_CR5    0xAC
 
 
 
@@ -81,9 +96,13 @@ struct stm32u535_pwr {
     uint32_t pwr_cr2;
     uint32_t pwr_cr3;
     uint32_t pwr_cr4;
+    uint32_t pwr_cr5;
+    uint32_t pwr_vosr;
     uint32_t pwr_sr1;
     uint32_t pwr_sr2;
     uint32_t pwr_scr;
+    uint32_t pwr_svmsr;
+
     uint32_t pwr_pucra;
     uint32_t pwr_pdcra;
     uint32_t pwr_pucrb;

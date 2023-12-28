@@ -48,11 +48,14 @@
 #define PWR_SVMSR_ACTVOSRDY_Msk             (0x1UL << PWR_SVMSR_ACTVOSRDY_Pos)      /*!< 0x00008000 */
 #define PWR_SVMSR_ACTVOSRDY                 PWR_SVMSR_ACTVOSRDY_Msk                 /*!< Voltage level ready for currently used VOS        */
 
+#define PWR_VOSR_BOOSTRDY_Pos               (14U)
+#define PWR_VOSR_BOOSTRDY_Msk               (0x1UL << PWR_VOSR_BOOSTRDY_Pos)        /*!< 0x00004000 */
+#define PWR_VOSR_BOOSTRDY                   PWR_VOSR_BOOSTRDY_Msk     
 
 static uint64_t stm32u535_pwr_read(void *opaque, hwaddr addr, unsigned int size){
     struct stm32u535_pwr *self = (struct stm32u535_pwr*)opaque;
 
-    if (addr!=PWR_SR2) PWR_TRACE("read: from register at offset %08x\n", (uint32_t)addr);
+    // if (addr!=PWR_SR2) PWR_TRACE("read: from register at offset %08x\n", (uint32_t)addr);
 
     switch(addr){
         case PWR_CR1: {
@@ -66,29 +69,39 @@ static uint64_t stm32u535_pwr_read(void *opaque, hwaddr addr, unsigned int size)
             return self->pwr_cr3;
         } break;
         case PWR_CR4: {
-            // clear bit CR4_SMPSLPEN
-            self->pwr_cr4 &= ~CR4_SMPSLPEN;
-
-            // Set U5 Voltage scaling ready
-            self->pwr_cr4 |= PWR_VOSR_VOSRDY;
-            //self->pwr_cr4 &= ~PWR_VOSR_VOSRDY;
-            PWR_TRACE("val %08x\n", (uint32_t) self->pwr_cr4);
-
-
             return self->pwr_cr4;
         } break;
-        case PWR_SR1: {
+        case PWR_CR5: {
+            return self->pwr_cr5;
+        } break;
+        case PWR_VOSR: {
+            // clear bit CR4_SMPSLPEN
+            self->pwr_vosr &= ~CR4_SMPSLPEN;
+
+            // Set U5 Voltage scaling ready
+            self->pwr_vosr |= PWR_VOSR_VOSRDY;
+
+            // Boost ready
+            self->pwr_vosr |= PWR_VOSR_BOOSTRDY;
+            //self->pwr_cr4 &= ~PWR_VOSR_VOSRDY;
+            PWR_TRACE("val %08x\n", (uint32_t) self->pwr_vosr);
+
+
+            return self->pwr_vosr;
+        } break;
+        case PWR_SVMSR: {
+            // Set U5 Voltage scaling ready
+            self->pwr_svmsr |= PWR_SVMSR_ACTVOSRDY |  (0x3UL << 16);
+            PWR_TRACE("val %08x\n", (uint32_t) self->pwr_svmsr);
+
+            return self->pwr_svmsr;
+        } break;
+        //case PWR_SR1: {
             // Clear SMPSBYPRDY and set SMPSHPRDY
-            self->pwr_sr1 &= ~SMPSBYPRDY;
-            self->pwr_sr1 |= SMPSHPRDY;
-            return self->pwr_sr1;   // (self->pwr_sr1 << 32);
-        } break;
-        case PWR_SR2: {
-            return self->pwr_sr2;
-        } break;
-        case PWR_SCR: {
-            return self->pwr_scr;
-        } break;
+          //  self->pwr_sr1 &= ~SMPSBYPRDY;
+          //  self->pwr_sr1 |= SMPSHPRDY;
+          //  return self->pwr_sr1;   // (self->pwr_sr1 << 32);
+        //} break;
         case PWR_PUCRA: {
             return self->pwr_pucra;
         } break;
@@ -358,14 +371,14 @@ static void stm32u535_pwr_write(void *opaque, hwaddr addr, uint64_t val64, unsig
         case PWR_CR4: {
             self->pwr_cr4 = val;
         } break;
-        case PWR_SR1: {
-            self->pwr_sr1 = val;
+        case PWR_CR5: {
+            self->pwr_cr5 = val;
         } break;
-        case PWR_SR2: {
-            self->pwr_sr2 = val;
+        case PWR_VOSR: {
+            self->pwr_vosr = val;
         } break;
-        case PWR_SCR: {
-            self->pwr_scr = val;
+        case PWR_SVMSR: {
+            self->pwr_svmsr = val;
         } break;
         case PWR_PUCRA: {
             self->pwr_pucra = val;
@@ -448,10 +461,11 @@ static void stm32u535_pwr_reset(DeviceState *dev){
     self->pwr_cr1 = 0x0000C000;
     self->pwr_cr2 = 0x20;
     self->pwr_cr3 = 0x00000000;
-    self->pwr_cr4 = 0x00000000;
-    self->pwr_sr1 = 0x00000000;
-    self->pwr_sr2 = 0x00000000;
-    self->pwr_scr = 0x00000000;
+    self->pwr_vosr = 0x00008000;
+    //self->pwr_sr1 = 0x00000000;
+    //self->pwr_sr2 = 0x00000000;
+    //self->pwr_scr = 0x00000000;
+    self->pwr_svmsr = 0x00008000;
     self->pwr_pucra = 0x00000000;
     self->pwr_pdcra = 0x00000000;
     self->pwr_pucrb = 0x00000000;

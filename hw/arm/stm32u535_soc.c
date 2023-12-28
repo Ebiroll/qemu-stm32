@@ -374,12 +374,12 @@ static void stm32l552_soc_initfn(Object *obj)
     object_initialize_child(obj, "exti", &s->exti, TYPE_STM32L552_EXTI);
     
 
-    object_initialize_child(obj, "stm32l552-rcc", &s->rcc, TYPE_STM32L552_RCC);
+    object_initialize_child(obj, "stm32l552-rcc", &s->rcc, TYPE_STM32U535_RCC);
     object_initialize_child(obj, "stm32fxxx-rtc", &s->rtc, TYPE_STM32L552_RTC);
     // object_initialize_child(obj, "stm32l552-dmamux", &s->dmamux, TYPE_STM32L552_DMAMUX);
 
     // 
-    object_initialize_child(obj, "stm32-pwr", &s->pwr, TYPE_STM32L552_PWR);
+    object_initialize_child(obj, "stm32-pwr", &s->pwr, TYPE_STM32U535_PWR);
 
 
 

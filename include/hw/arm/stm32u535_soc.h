@@ -33,9 +33,9 @@
 #include "hw/ssi/stm32f2xx_spi.h"
 #include "hw/arm/armv7m.h"
 #include "qom/object.h"
-#include "hw/arm/stm32/stm32l552_rcc.h"
+#include "hw/arm/stm32/stm32u535_rcc.h"
 #include "hw/arm/stm32/stm32l552_rtc.h"
-#include "hw/arm/stm32/stm32l552_pwr.h"
+#include "hw/arm/stm32/stm32u535_pwr.h"
 #include "hw/arm/stm32/stm32fxxx_gpio.h"
 #include "hw/arm/stm32/stm32l552_adc.h"
 #include "hw/arm/stm32/stm32l552_flash.h"
@@ -84,8 +84,8 @@ struct STM32U535State {
     //DeviceState *asic1;
 
     //stm32fxxx_pwr     pwr;
-    stm32l552_pwr     pwr;
-    STM32L552RccState rcc;
+    stm32u535_pwr     pwr;
+    STM32u535RccState rcc;
     STM32L552RtcState rtc;
 
     STM32L55DmaMuxState dmamux;
