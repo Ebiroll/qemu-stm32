@@ -72,6 +72,7 @@ struct STM32U535State {
     STM32lxxxSyscfgState syscfg;
     STM32L552ExtiState exti;
     STM32L552UsartState usart[STM32U535_NUM_USARTS];
+    STM32L552UsartState lpuart1;
     STM32F2XXTimerState timer[STM32U535_NUM_TIMERS];
     OrIRQState adc_irqs;
     STM32L552ADCState adc;

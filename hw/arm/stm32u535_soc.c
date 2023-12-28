@@ -302,6 +302,10 @@ static void stm32l552_soc_initfn(Object *obj)
 
     object_initialize_child(obj, "syscfg", &s->syscfg, TYPE_STM32LXXX_SYSCFG);
 
+    object_initialize_child(obj, "lpuart1", &s->lpuart1,
+                            TYPE_STM32L552_USART);
+
+
     for (i = 0; i < STM32U535_NUM_USARTS; i++) {
         object_initialize_child(obj, "usart[*]", &s->usart[i],
                                 TYPE_STM32L552_USART);
@@ -575,10 +579,22 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
     sysbus_mmio_map(busdev, 0, SYSCFG_ADD);
     //sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(armv7m, SYSCFG_IRQ));
 
+
+    // LPuart1 
+
+    dev = DEVICE(&(s->lpuart1));
+    qdev_prop_set_chr(dev, "chardev", serial_hd(0));
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->lpuart1), errp)) {
+        return;
+    }
+    busdev = SYS_BUS_DEVICE(dev);
+    sysbus_mmio_map(busdev, 0,0x46002400);
+    sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(armv7m, LPUART1_IRQn));
+
     /* Attach UART (uses USART registers) and USART controllers */
     for (i = 0; i < STM32U535_NUM_USARTS; i++) {
         dev = DEVICE(&(s->usart[i]));
-        qdev_prop_set_chr(dev, "chardev", serial_hd(i));
+        qdev_prop_set_chr(dev, "chardev", serial_hd(i+1));
         if (!sysbus_realize(SYS_BUS_DEVICE(&s->usart[i]), errp)) {
             return;
         }
@@ -586,6 +602,7 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
         sysbus_mmio_map(busdev, 0, usart_addr[i]);
         sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(armv7m, usart_irq[i]));
     }
+
 
     /* Timer 2 to 5 */
     for (i = 0; i < STM32U535_NUM_TIMERS; i++) {
@@ -862,7 +879,7 @@ DeviceState *stm32_init_periph(DeviceState *dev, stm32_periph_t periph,
     create_unimplemented_dual_device("LPTIM3", 0x46004800, 0x400);
     create_unimplemented_dual_device("LPTIM1", 0x46004400, 0x400);
     create_unimplemented_dual_device("I2C3", 0x46002800, 0x400);
-    create_unimplemented_dual_device("LPUART1", 0x46002400, 0x400);
+    // create_unimplemented_dual_device("LPUART1", 0x46002400, 0x400);
     create_unimplemented_dual_device("SPI3", 0x46002000, 0x400);
     create_unimplemented_dual_device("SYSCFG", 0x46000400, 0x400);
 
