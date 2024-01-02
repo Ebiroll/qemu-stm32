@@ -41,6 +41,7 @@
 #include "hw/arm/stm32/stm32l552_flash.h"
 #include "hw/arm/asic_sim/nn1002.h"
 #include "hw/arm/stm32/stm32l552_dmamux.h"
+#include "hw/arm/stm32/stm32u535_usb.h"
 
 
 #define TYPE_STM32U535_SOC "stm32u535-soc"
@@ -88,6 +89,7 @@ struct STM32U535State {
     stm32u535_pwr     pwr;
     STM32u535RccState rcc;
     STM32L552RtcState rtc;
+    STM32U535USBState usb;
 
     STM32L55DmaMuxState dmamux;
 

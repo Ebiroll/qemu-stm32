@@ -380,6 +380,8 @@ static void stm32l552_soc_initfn(Object *obj)
 
     object_initialize_child(obj, "stm32l552-rcc", &s->rcc, TYPE_STM32U535_RCC);
     object_initialize_child(obj, "stm32fxxx-rtc", &s->rtc, TYPE_STM32L552_RTC);
+    object_initialize_child(obj, "stm32u535-usb", &s->usb, TYPE_STM32U535_USB);
+
     // object_initialize_child(obj, "stm32l552-dmamux", &s->dmamux, TYPE_STM32L552_DMAMUX);
 
     // 
@@ -668,6 +670,14 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
     }
     busdev = SYS_BUS_DEVICE(dev);
     sysbus_mmio_map(busdev, 0, 0x46007800);
+
+    /* USB Device*/
+    dev = DEVICE(&s->usb);
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->usb), errp)) {
+        return;
+    }
+    busdev = SYS_BUS_DEVICE(dev);
+    sysbus_mmio_map(busdev, 0, 0x40016000);
 
 #if 0
     /* DMAMux Device*/
@@ -1071,7 +1081,7 @@ TIM16/TIM17 register map XXXX
         create_unimplemented_dual_device("DSI", 0x40016C00, 0x400);
         create_unimplemented_dual_device("LTDC", 0x40016800, 0x400);
         create_unimplemented_dual_device("GFXTIM", 0x40016400, 0x400);
-        create_unimplemented_dual_device("USB", 0x40016000, 0x400);
+        //create_unimplemented_dual_device("USB", 0x40016000, 0x400);
         create_unimplemented_dual_device("SAI2", 0x40015800, 0x400);
         create_unimplemented_dual_device("SAI1", 0x40015400, 0x400);
         create_unimplemented_dual_device("TIM17", 0x40014800, 0x400);
