@@ -3,11 +3,11 @@ config PSERIES
     imply PCI_DEVICES
     imply TEST_DEVICES
     imply VIRTIO_VGA
+    imply VFIO_PCI if LINUX   # needed by spapr_pci_vfio.c
     select NVDIMM
     select DIMM
     select PCI
     select SPAPR_VSCSI
-    select VFIO if LINUX   # needed by spapr_pci_vfio.c
     select XICS
     select XIVE
     select MSI_NONBROKEN
@@ -68,6 +68,13 @@ config SAM460EX
     select USB_EHCI_SYSBUS
     select USB_OHCI
     select FDT_PPC
+
+config AMIGAONE
+    bool
+    imply ATI_VGA
+    select ARTICIA
+    select VT82C686
+    select SMBUS_EEPROM
 
 config PEGASOS2
     bool

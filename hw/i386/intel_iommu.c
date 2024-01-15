@@ -1045,18 +1045,35 @@ static dma_addr_t vtd_get_iova_pgtbl_base(IntelIOMMUState *s,
  * Rsvd field masks for spte:
  *     vtd_spte_rsvd 4k pages
  *     vtd_spte_rsvd_large large pages
+ *
+ * We support only 3-level and 4-level page tables (see vtd_init() which
+ * sets only VTD_CAP_SAGAW_39bit and maybe VTD_CAP_SAGAW_48bit bits in s->cap).
  */
-static uint64_t vtd_spte_rsvd[5];
-static uint64_t vtd_spte_rsvd_large[5];
+#define VTD_SPTE_RSVD_LEN 5
+static uint64_t vtd_spte_rsvd[VTD_SPTE_RSVD_LEN];
+static uint64_t vtd_spte_rsvd_large[VTD_SPTE_RSVD_LEN];
 
 static bool vtd_slpte_nonzero_rsvd(uint64_t slpte, uint32_t level)
 {
-    uint64_t rsvd_mask = vtd_spte_rsvd[level];
+    uint64_t rsvd_mask;
+
+    /*
+     * We should have caught a guest-mis-programmed level earlier,
+     * via vtd_is_level_supported.
+     */
+    assert(level < VTD_SPTE_RSVD_LEN);
+    /*
+     * Zero level doesn't exist. The smallest level is VTD_SL_PT_LEVEL=1 and
+     * checked by vtd_is_last_slpte().
+     */
+    assert(level);
 
     if ((level == VTD_SL_PD_LEVEL || level == VTD_SL_PDP_LEVEL) &&
         (slpte & VTD_SL_PT_PAGE_SIZE_MASK)) {
         /* large page */
         rsvd_mask = vtd_spte_rsvd_large[level];
+    } else {
+        rsvd_mask = vtd_spte_rsvd[level];
     }
 
     return slpte & rsvd_mask;
@@ -1648,7 +1665,7 @@ static bool vtd_switch_address_space(VTDAddressSpace *as)
 {
     bool use_iommu, pt;
     /* Whether we need to take the BQL on our own */
-    bool take_bql = !qemu_mutex_iothread_locked();
+    bool take_bql = !bql_locked();
 
     assert(as);
 
@@ -1666,7 +1683,7 @@ static bool vtd_switch_address_space(VTDAddressSpace *as)
      * it. We'd better make sure we have had it already, or, take it.
      */
     if (take_bql) {
-        qemu_mutex_lock_iothread();
+        bql_lock();
     }
 
     /* Turn off first then on the other */
@@ -1721,7 +1738,7 @@ static bool vtd_switch_address_space(VTDAddressSpace *as)
     }
 
     if (take_bql) {
-        qemu_mutex_unlock_iothread();
+        bql_unlock();
     }
 
     return use_iommu;
@@ -3272,7 +3289,7 @@ static const VMStateDescription vtd_vmstate = {
     .minimum_version_id = 1,
     .priority = MIG_PRI_IOMMU,
     .post_load = vtd_post_load,
-    .fields = (VMStateField[]) {
+    .fields = (const VMStateField[]) {
         VMSTATE_UINT64(root, IntelIOMMUState),
         VMSTATE_UINT64(intr_root, IntelIOMMUState),
         VMSTATE_UINT64(iq, IntelIOMMUState),
@@ -4088,6 +4105,10 @@ static AddressSpace *vtd_host_dma_iommu(PCIBus *bus, void *opaque, int devfn)
     return &vtd_as->as;
 }
 
+static PCIIOMMUOps vtd_iommu_ops = {
+    .get_address_space = vtd_host_dma_iommu,
+};
+
 static bool vtd_decide_config(IntelIOMMUState *s, Error **errp)
 {
     X86IOMMUState *x86_iommu = X86_IOMMU_DEVICE(s);
@@ -4210,7 +4231,7 @@ static void vtd_realize(DeviceState *dev, Error **errp)
     s->vtd_address_spaces = g_hash_table_new_full(vtd_as_hash, vtd_as_equal,
                                       g_free, g_free);
     vtd_init(s);
-    pci_setup_iommu(bus, vtd_host_dma_iommu, dev);
+    pci_setup_iommu(bus, &vtd_iommu_ops, dev);
     /* Pseudo address space under root PCI bus. */
     x86ms->ioapic_as = vtd_host_dma_iommu(bus, s, Q35_PSEUDO_DEVFN_IOAPIC);
     qemu_add_machine_init_done_notifier(&vtd_machine_done_notify);

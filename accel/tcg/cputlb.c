@@ -24,6 +24,7 @@
 #include "exec/memory.h"
 #include "exec/cpu_ldst.h"
 #include "exec/cputlb.h"
+#include "exec/tb-flush.h"
 #include "exec/memory-internal.h"
 #include "exec/ram_addr.h"
 #include "tcg/tcg.h"
@@ -319,21 +320,6 @@ static void flush_all_helper(CPUState *src, run_on_cpu_func fn,
             async_run_on_cpu(cpu, fn, d);
         }
     }
-}
-
-void tlb_flush_counts(size_t *pfull, size_t *ppart, size_t *pelide)
-{
-    CPUState *cpu;
-    size_t full = 0, part = 0, elide = 0;
-
-    CPU_FOREACH(cpu) {
-        full += qatomic_read(&cpu->neg.tlb.c.full_flush_count);
-        part += qatomic_read(&cpu->neg.tlb.c.part_flush_count);
-        elide += qatomic_read(&cpu->neg.tlb.c.elide_flush_count);
-    }
-    *pfull = full;
-    *ppart = part;
-    *pelide = elide;
 }
 
 static void tlb_flush_by_mmuidx_async_work(CPUState *cpu, run_on_cpu_data data)
@@ -1493,7 +1479,8 @@ int probe_access_full(CPUArchState *env, vaddr addr, int size,
 
     /* Handle clean RAM pages.  */
     if (unlikely(flags & TLB_NOTDIRTY)) {
-        notdirty_write(env_cpu(env), addr, 1, *pfull, retaddr);
+        int dirtysize = size == 0 ? 1 : size;
+        notdirty_write(env_cpu(env), addr, dirtysize, *pfull, retaddr);
         flags &= ~TLB_NOTDIRTY;
     }
 
@@ -1516,7 +1503,8 @@ int probe_access_full_mmu(CPUArchState *env, vaddr addr, int size,
 
     /* Handle clean RAM pages.  */
     if (unlikely(flags & TLB_NOTDIRTY)) {
-        notdirty_write(env_cpu(env), addr, 1, *pfull, 0);
+        int dirtysize = size == 0 ? 1 : size;
+        notdirty_write(env_cpu(env), addr, dirtysize, *pfull, 0);
         flags &= ~TLB_NOTDIRTY;
     }
 
@@ -1538,7 +1526,8 @@ int probe_access_flags(CPUArchState *env, vaddr addr, int size,
 
     /* Handle clean RAM pages. */
     if (unlikely(flags & TLB_NOTDIRTY)) {
-        notdirty_write(env_cpu(env), addr, 1, full, retaddr);
+        int dirtysize = size == 0 ? 1 : size;
+        notdirty_write(env_cpu(env), addr, dirtysize, full, retaddr);
         flags &= ~TLB_NOTDIRTY;
     }
 
@@ -1574,7 +1563,7 @@ void *probe_access(CPUArchState *env, vaddr addr, int size,
 
         /* Handle clean RAM pages.  */
         if (flags & TLB_NOTDIRTY) {
-            notdirty_write(env_cpu(env), addr, 1, full, retaddr);
+            notdirty_write(env_cpu(env), addr, size, full, retaddr);
         }
     }
 
@@ -1986,7 +1975,7 @@ static void *atomic_mmu_lookup(CPUState *cpu, vaddr addr, MemOpIdx oi,
  * @size: number of bytes
  * @mmu_idx: virtual address context
  * @ra: return address into tcg generated code, or 0
- * Context: iothread lock held
+ * Context: BQL held
  *
  * Load @size bytes from @addr, which is memory-mapped i/o.
  * The bytes are concatenated in big-endian order with @ret_be.
@@ -2041,10 +2030,10 @@ static uint64_t do_ld_mmio_beN(CPUState *cpu, CPUTLBEntryFull *full,
     section = io_prepare(&mr_offset, cpu, full->xlat_section, attrs, addr, ra);
     mr = section->mr;
 
-    qemu_mutex_lock_iothread();
+    bql_lock();
     ret = int_ld_mmio_beN(cpu, full, ret_be, addr, size, mmu_idx,
                           type, ra, mr, mr_offset);
-    qemu_mutex_unlock_iothread();
+    bql_unlock();
 
     return ret;
 }
@@ -2065,12 +2054,12 @@ static Int128 do_ld16_mmio_beN(CPUState *cpu, CPUTLBEntryFull *full,
     section = io_prepare(&mr_offset, cpu, full->xlat_section, attrs, addr, ra);
     mr = section->mr;
 
-    qemu_mutex_lock_iothread();
+    bql_lock();
     a = int_ld_mmio_beN(cpu, full, ret_be, addr, size - 8, mmu_idx,
                         MMU_DATA_LOAD, ra, mr, mr_offset);
     b = int_ld_mmio_beN(cpu, full, ret_be, addr + size - 8, 8, mmu_idx,
                         MMU_DATA_LOAD, ra, mr, mr_offset + size - 8);
-    qemu_mutex_unlock_iothread();
+    bql_unlock();
 
     return int128_make128(b, a);
 }
@@ -2532,7 +2521,7 @@ static Int128 do_ld16_mmu(CPUState *cpu, vaddr addr,
  * @size: number of bytes
  * @mmu_idx: virtual address context
  * @ra: return address into tcg generated code, or 0
- * Context: iothread lock held
+ * Context: BQL held
  *
  * Store @size bytes at @addr, which is memory-mapped i/o.
  * The bytes to store are extracted in little-endian order from @val_le;
@@ -2588,10 +2577,10 @@ static uint64_t do_st_mmio_leN(CPUState *cpu, CPUTLBEntryFull *full,
     section = io_prepare(&mr_offset, cpu, full->xlat_section, attrs, addr, ra);
     mr = section->mr;
 
-    qemu_mutex_lock_iothread();
+    bql_lock();
     ret = int_st_mmio_leN(cpu, full, val_le, addr, size, mmu_idx,
                           ra, mr, mr_offset);
-    qemu_mutex_unlock_iothread();
+    bql_unlock();
 
     return ret;
 }
@@ -2612,12 +2601,12 @@ static uint64_t do_st16_mmio_leN(CPUState *cpu, CPUTLBEntryFull *full,
     section = io_prepare(&mr_offset, cpu, full->xlat_section, attrs, addr, ra);
     mr = section->mr;
 
-    qemu_mutex_lock_iothread();
+    bql_lock();
     int_st_mmio_leN(cpu, full, int128_getlo(val_le), addr, 8,
                     mmu_idx, ra, mr, mr_offset);
     ret = int_st_mmio_leN(cpu, full, int128_gethi(val_le), addr + 8,
                           size - 8, mmu_idx, ra, mr, mr_offset + 8);
-    qemu_mutex_unlock_iothread();
+    bql_unlock();
 
     return ret;
 }
@@ -2706,7 +2695,7 @@ static uint64_t do_st16_leN(CPUState *cpu, MMULookupPageData *p,
 
     case MO_ATOM_WITHIN16_PAIR:
         /* Since size > 8, this is the half that must be atomic. */
-        if (!HAVE_ATOMIC128_RW) {
+        if (!HAVE_CMPXCHG128) {
             cpu_loop_exit_atomic(cpu, ra);
         }
         return store_whole_le16(p->haddr, p->size, val_le);

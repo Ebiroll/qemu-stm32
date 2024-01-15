@@ -70,14 +70,14 @@ CPUState *cpu_create(const char *typename)
  * BQL here if we need to.  cpu_interrupt assumes it is held.*/
 void cpu_reset_interrupt(CPUState *cpu, int mask)
 {
-    bool need_lock = !qemu_mutex_iothread_locked();
+    bool need_lock = !bql_locked();
 
     if (need_lock) {
-        qemu_mutex_lock_iothread();
+        bql_lock();
     }
     cpu->interrupt_request &= ~mask;
     if (need_lock) {
-        qemu_mutex_unlock_iothread();
+        bql_unlock();
     }
 }
 
@@ -136,10 +136,7 @@ static void cpu_common_reset_hold(Object *obj)
     cpu->crash_occurred = false;
     cpu->cflags_next_tb = -1;
 
-    if (tcg_enabled()) {
-        tcg_flush_jmp_cache(cpu);
-        tcg_flush_softmmu_tlb(cpu);
-    }
+    cpu_exec_reset_hold(cpu);
 }
 
 static bool cpu_common_has_work(CPUState *cs)
@@ -149,10 +146,20 @@ static bool cpu_common_has_work(CPUState *cs)
 
 ObjectClass *cpu_class_by_name(const char *typename, const char *cpu_model)
 {
-    CPUClass *cc = CPU_CLASS(object_class_by_name(typename));
+    ObjectClass *oc;
+    CPUClass *cc;
 
-    assert(cpu_model && cc->class_by_name);
-    return cc->class_by_name(cpu_model);
+    oc = object_class_by_name(typename);
+    cc = CPU_CLASS(oc);
+    assert(cc->class_by_name);
+    assert(cpu_model);
+    oc = cc->class_by_name(cpu_model);
+    if (object_class_dynamic_cast(oc, typename) &&
+        !object_class_is_abstract(oc)) {
+        return oc;
+    }
+
+    return NULL;
 }
 
 static void cpu_common_parse_features(const char *typename, char *features,
@@ -209,12 +216,22 @@ static void cpu_common_realizefn(DeviceState *dev, Error **errp)
         cpu_resume(cpu);
     }
 
+    /* Plugin initialization must wait until the cpu is fully realized. */
+    if (tcg_enabled()) {
+        qemu_plugin_vcpu_init_hook(cpu);
+    }
+
     /* NOTE: latest generic point where the cpu is fully realized */
 }
 
 static void cpu_common_unrealizefn(DeviceState *dev)
 {
     CPUState *cpu = CPU(dev);
+
+    /* Call the plugin hook before clearing the cpu is fully unrealized */
+    if (tcg_enabled()) {
+        qemu_plugin_vcpu_exit_hook(cpu);
+    }
 
     /* NOTE: latest generic point before the cpu is fully unrealized */
     cpu_exec_unrealizefn(cpu);

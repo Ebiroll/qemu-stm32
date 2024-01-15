@@ -15,6 +15,7 @@
 #include "qapi/error.h"
 #include "qapi/qapi-commands-virtio.h"
 #include "trace.h"
+#include "qemu/defer-call.h"
 #include "qemu/error-report.h"
 #include "qemu/log.h"
 #include "qemu/main-loop.h"
@@ -2136,7 +2137,7 @@ void virtio_reset(void *opaque)
         vdev->device_endian = virtio_default_endian();
     }
 
-    if (vdev->vhost_started) {
+    if (vdev->vhost_started && k->get_vhost) {
         vhost_reset_device(k->get_vhost(vdev));
     }
 
@@ -2445,6 +2446,16 @@ static bool virtio_should_notify(VirtIODevice *vdev, VirtQueue *vq)
     }
 }
 
+/* Batch irqs while inside a defer_call_begin()/defer_call_end() section */
+static void virtio_notify_irqfd_deferred_fn(void *opaque)
+{
+    EventNotifier *notifier = opaque;
+    VirtQueue *vq = container_of(notifier, VirtQueue, guest_notifier);
+
+    trace_virtio_notify_irqfd_deferred_fn(vq->vdev, vq);
+    event_notifier_set(notifier);
+}
+
 void virtio_notify_irqfd(VirtIODevice *vdev, VirtQueue *vq)
 {
     WITH_RCU_READ_LOCK_GUARD() {
@@ -2471,7 +2482,7 @@ void virtio_notify_irqfd(VirtIODevice *vdev, VirtQueue *vq)
      * to an atomic operation.
      */
     virtio_set_isr(vq->vdev, 0x1);
-    event_notifier_set(&vq->guest_notifier);
+    defer_call(virtio_notify_irqfd_deferred_fn, &vq->guest_notifier);
 }
 
 static void virtio_irq(VirtQueue *vq)
@@ -2583,7 +2594,7 @@ static const VMStateDescription vmstate_virtqueue = {
     .name = "virtqueue_state",
     .version_id = 1,
     .minimum_version_id = 1,
-    .fields = (VMStateField[]) {
+    .fields = (const VMStateField[]) {
         VMSTATE_UINT64(vring.avail, struct VirtQueue),
         VMSTATE_UINT64(vring.used, struct VirtQueue),
         VMSTATE_END_OF_LIST()
@@ -2594,7 +2605,7 @@ static const VMStateDescription vmstate_packed_virtqueue = {
     .name = "packed_virtqueue_state",
     .version_id = 1,
     .minimum_version_id = 1,
-    .fields = (VMStateField[]) {
+    .fields = (const VMStateField[]) {
         VMSTATE_UINT16(last_avail_idx, struct VirtQueue),
         VMSTATE_BOOL(last_avail_wrap_counter, struct VirtQueue),
         VMSTATE_UINT16(used_idx, struct VirtQueue),
@@ -2609,7 +2620,7 @@ static const VMStateDescription vmstate_virtio_virtqueues = {
     .version_id = 1,
     .minimum_version_id = 1,
     .needed = &virtio_virtqueue_needed,
-    .fields = (VMStateField[]) {
+    .fields = (const VMStateField[]) {
         VMSTATE_STRUCT_VARRAY_POINTER_KNOWN(vq, struct VirtIODevice,
                       VIRTIO_QUEUE_MAX, 0, vmstate_virtqueue, VirtQueue),
         VMSTATE_END_OF_LIST()
@@ -2621,7 +2632,7 @@ static const VMStateDescription vmstate_virtio_packed_virtqueues = {
     .version_id = 1,
     .minimum_version_id = 1,
     .needed = &virtio_packed_virtqueue_needed,
-    .fields = (VMStateField[]) {
+    .fields = (const VMStateField[]) {
         VMSTATE_STRUCT_VARRAY_POINTER_KNOWN(vq, struct VirtIODevice,
                       VIRTIO_QUEUE_MAX, 0, vmstate_packed_virtqueue, VirtQueue),
         VMSTATE_END_OF_LIST()
@@ -2632,7 +2643,7 @@ static const VMStateDescription vmstate_ringsize = {
     .name = "ringsize_state",
     .version_id = 1,
     .minimum_version_id = 1,
-    .fields = (VMStateField[]) {
+    .fields = (const VMStateField[]) {
         VMSTATE_UINT32(vring.num_default, struct VirtQueue),
         VMSTATE_END_OF_LIST()
     }
@@ -2643,7 +2654,7 @@ static const VMStateDescription vmstate_virtio_ringsize = {
     .version_id = 1,
     .minimum_version_id = 1,
     .needed = &virtio_ringsize_needed,
-    .fields = (VMStateField[]) {
+    .fields = (const VMStateField[]) {
         VMSTATE_STRUCT_VARRAY_POINTER_KNOWN(vq, struct VirtIODevice,
                       VIRTIO_QUEUE_MAX, 0, vmstate_ringsize, VirtQueue),
         VMSTATE_END_OF_LIST()
@@ -2686,7 +2697,7 @@ static const VMStateDescription vmstate_virtio_extra_state = {
     .version_id = 1,
     .minimum_version_id = 1,
     .needed = &virtio_extra_state_needed,
-    .fields = (VMStateField[]) {
+    .fields = (const VMStateField[]) {
         {
             .name         = "extra_state",
             .version_id   = 0,
@@ -2705,7 +2716,7 @@ static const VMStateDescription vmstate_virtio_device_endian = {
     .version_id = 1,
     .minimum_version_id = 1,
     .needed = &virtio_device_endian_needed,
-    .fields = (VMStateField[]) {
+    .fields = (const VMStateField[]) {
         VMSTATE_UINT8(device_endian, VirtIODevice),
         VMSTATE_END_OF_LIST()
     }
@@ -2716,7 +2727,7 @@ static const VMStateDescription vmstate_virtio_64bit_features = {
     .version_id = 1,
     .minimum_version_id = 1,
     .needed = &virtio_64bit_features_needed,
-    .fields = (VMStateField[]) {
+    .fields = (const VMStateField[]) {
         VMSTATE_UINT64(guest_features, VirtIODevice),
         VMSTATE_END_OF_LIST()
     }
@@ -2727,7 +2738,7 @@ static const VMStateDescription vmstate_virtio_broken = {
     .version_id = 1,
     .minimum_version_id = 1,
     .needed = &virtio_broken_needed,
-    .fields = (VMStateField[]) {
+    .fields = (const VMStateField[]) {
         VMSTATE_BOOL(broken, VirtIODevice),
         VMSTATE_END_OF_LIST()
     }
@@ -2738,7 +2749,7 @@ static const VMStateDescription vmstate_virtio_started = {
     .version_id = 1,
     .minimum_version_id = 1,
     .needed = &virtio_started_needed,
-    .fields = (VMStateField[]) {
+    .fields = (const VMStateField[]) {
         VMSTATE_BOOL(started, VirtIODevice),
         VMSTATE_END_OF_LIST()
     }
@@ -2749,7 +2760,7 @@ static const VMStateDescription vmstate_virtio_disabled = {
     .version_id = 1,
     .minimum_version_id = 1,
     .needed = &virtio_disabled_needed,
-    .fields = (VMStateField[]) {
+    .fields = (const VMStateField[]) {
         VMSTATE_BOOL(disabled, VirtIODevice),
         VMSTATE_END_OF_LIST()
     }
@@ -2759,10 +2770,10 @@ static const VMStateDescription vmstate_virtio = {
     .name = "virtio",
     .version_id = 1,
     .minimum_version_id = 1,
-    .fields = (VMStateField[]) {
+    .fields = (const VMStateField[]) {
         VMSTATE_END_OF_LIST()
     },
-    .subsections = (const VMStateDescription*[]) {
+    .subsections = (const VMStateDescription * const []) {
         &vmstate_virtio_device_endian,
         &vmstate_virtio_64bit_features,
         &vmstate_virtio_virtqueues,

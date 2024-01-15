@@ -25,6 +25,7 @@
 #include "cpu.h"
 #include "disas/dis-asm.h"
 #include "tcg/debug-assert.h"
+#include "hw/qdev-properties.h"
 
 static void avr_cpu_set_pc(CPUState *cs, vaddr value)
 {
@@ -95,7 +96,7 @@ static void avr_cpu_reset_hold(Object *obj)
     env->rampY = 0;
     env->rampZ = 0;
     env->eind = 0;
-    env->sp = 0;
+    env->sp = cpu->init_sp;
 
     env->skip = 0;
 
@@ -152,16 +153,14 @@ static void avr_cpu_initfn(Object *obj)
                       sizeof(cpu->env.intsrc) * 8);
 }
 
+static Property avr_cpu_properties[] = {
+    DEFINE_PROP_UINT32("init-sp", AVRCPU, init_sp, 0),
+    DEFINE_PROP_END_OF_LIST()
+};
+
 static ObjectClass *avr_cpu_class_by_name(const char *cpu_model)
 {
-    ObjectClass *oc;
-
-    oc = object_class_by_name(cpu_model);
-    if (object_class_dynamic_cast(oc, TYPE_AVR_CPU) == NULL ||
-        object_class_is_abstract(oc)) {
-        oc = NULL;
-    }
-    return oc;
+    return object_class_by_name(cpu_model);
 }
 
 static void avr_cpu_dump_state(CPUState *cs, FILE *f, int flags)
@@ -228,6 +227,8 @@ static void avr_cpu_class_init(ObjectClass *oc, void *data)
     ResettableClass *rc = RESETTABLE_CLASS(oc);
 
     device_class_set_parent_realize(dc, avr_cpu_realizefn, &mcc->parent_realize);
+
+    device_class_set_props(dc, avr_cpu_properties);
 
     resettable_class_set_parent_phases(rc, NULL, avr_cpu_reset_hold, NULL,
                                        &mcc->parent_phases);
@@ -360,21 +361,6 @@ typedef struct AVRCPUInfo {
     void (*initfn)(Object *obj);
 } AVRCPUInfo;
 
-
-static void avr_cpu_list_entry(gpointer data, gpointer user_data)
-{
-    const char *typename = object_class_get_name(OBJECT_CLASS(data));
-
-    qemu_printf("%s\n", typename);
-}
-
-void avr_cpu_list(void)
-{
-    GSList *list;
-    list = object_class_get_list_sorted(TYPE_AVR_CPU, false);
-    g_slist_foreach(list, avr_cpu_list_entry, NULL);
-    g_slist_free(list);
-}
 
 #define DEFINE_AVR_CPU_TYPE(model, initfn) \
     { \

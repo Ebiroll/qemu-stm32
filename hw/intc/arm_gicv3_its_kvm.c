@@ -21,6 +21,7 @@
 #include "qemu/osdep.h"
 #include "qapi/error.h"
 #include "qemu/module.h"
+#include "qemu/error-report.h"
 #include "hw/intc/arm_gicv3_its_common.h"
 #include "hw/qdev-properties.h"
 #include "sysemu/runstate.h"
@@ -123,7 +124,7 @@ static void kvm_arm_its_realize(DeviceState *dev, Error **errp)
 
     kvm_msi_use_devid = true;
     kvm_gsi_direct_mapping = false;
-    kvm_msi_via_irqfd_allowed = kvm_irqfds_enabled();
+    kvm_msi_via_irqfd_allowed = true;
 }
 
 /**

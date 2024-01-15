@@ -379,7 +379,7 @@ typedef struct Attributes {
 
 /* Command response result code */
 typedef enum CommandRespCode {
-    UFS_COMMAND_RESULT_SUCESS = 0x00,
+    UFS_COMMAND_RESULT_SUCCESS = 0x00,
     UFS_COMMAND_RESULT_FAIL = 0x01,
 } CommandRespCode;
 
@@ -657,7 +657,7 @@ typedef struct QEMU_PACKED UtpTaskReqDesc {
 #define UFS_UPIU_MAX_WB_LUN_ID 8
 
 /*
- * WriteBooster buffer lifetime has a limit setted by vendor.
+ * WriteBooster buffer lifetime has a limit set by vendor.
  * If it is over the limit, WriteBooster feature will be disabled.
  */
 #define UFS_WB_EXCEED_LIFETIME 0x0B

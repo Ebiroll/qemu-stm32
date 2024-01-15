@@ -18,6 +18,7 @@
  */
 #include "qemu/osdep.h"
 
+#include "exec/exec-all.h"
 #include "translate.h"
 #include "translate-a64.h"
 #include "qemu/log.h"
@@ -1606,7 +1607,7 @@ static bool trans_ERET(DisasContext *s, arg_ERET *a)
         return false;
     }
     if (s->fgt_eret) {
-        gen_exception_insn_el(s, 0, EXCP_UDEF, 0, 2);
+        gen_exception_insn_el(s, 0, EXCP_UDEF, syn_erettrap(0), 2);
         return true;
     }
     dst = tcg_temp_new_i64();
@@ -1633,7 +1634,7 @@ static bool trans_ERETA(DisasContext *s, arg_reta *a)
     }
     /* The FGT trap takes precedence over an auth trap. */
     if (s->fgt_eret) {
-        gen_exception_insn_el(s, 0, EXCP_UDEF, a->m ? 3 : 2, 2);
+        gen_exception_insn_el(s, 0, EXCP_UDEF, syn_erettrap(a->m ? 3 : 2), 2);
         return true;
     }
     dst = tcg_temp_new_i64();
@@ -2351,6 +2352,8 @@ static bool trans_SVC(DisasContext *s, arg_i *a)
 
 static bool trans_HVC(DisasContext *s, arg_i *a)
 {
+    int target_el = s->current_el == 3 ? 3 : 2;
+
     if (s->current_el == 0) {
         unallocated_encoding(s);
         return true;
@@ -2363,7 +2366,7 @@ static bool trans_HVC(DisasContext *s, arg_i *a)
     gen_helper_pre_hvc(tcg_env);
     /* Architecture requires ss advance before we do the actual work */
     gen_ss_advance(s);
-    gen_exception_insn_el(s, 4, EXCP_HVC, syn_aa64_hvc(a->imm), 2);
+    gen_exception_insn_el(s, 4, EXCP_HVC, syn_aa64_hvc(a->imm), target_el);
     return true;
 }
 

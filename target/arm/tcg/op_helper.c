@@ -21,6 +21,7 @@
 #include "cpu.h"
 #include "exec/helper-proto.h"
 #include "internals.h"
+#include "cpu-features.h"
 #include "exec/exec-all.h"
 #include "exec/cpu_ldst.h"
 #include "cpregs.h"
@@ -118,6 +119,61 @@ void HELPER(v8m_stackcheck)(CPUARMState *env, uint32_t newvalue)
          */
         raise_exception_ra(env, EXCP_STKOF, 0, 1, GETPC());
     }
+}
+
+/* Sign/zero extend */
+uint32_t HELPER(sxtb16)(uint32_t x)
+{
+    uint32_t res;
+    res = (uint16_t)(int8_t)x;
+    res |= (uint32_t)(int8_t)(x >> 16) << 16;
+    return res;
+}
+
+static void handle_possible_div0_trap(CPUARMState *env, uintptr_t ra)
+{
+    /*
+     * Take a division-by-zero exception if necessary; otherwise return
+     * to get the usual non-trapping division behaviour (result of 0)
+     */
+    if (arm_feature(env, ARM_FEATURE_M)
+        && (env->v7m.ccr[env->v7m.secure] & R_V7M_CCR_DIV_0_TRP_MASK)) {
+        raise_exception_ra(env, EXCP_DIVBYZERO, 0, 1, ra);
+    }
+}
+
+uint32_t HELPER(uxtb16)(uint32_t x)
+{
+    uint32_t res;
+    res = (uint16_t)(uint8_t)x;
+    res |= (uint32_t)(uint8_t)(x >> 16) << 16;
+    return res;
+}
+
+int32_t HELPER(sdiv)(CPUARMState *env, int32_t num, int32_t den)
+{
+    if (den == 0) {
+        handle_possible_div0_trap(env, GETPC());
+        return 0;
+    }
+    if (num == INT_MIN && den == -1) {
+        return INT_MIN;
+    }
+    return num / den;
+}
+
+uint32_t HELPER(udiv)(CPUARMState *env, uint32_t num, uint32_t den)
+{
+    if (den == 0) {
+        handle_possible_div0_trap(env, GETPC());
+        return 0;
+    }
+    return num / den;
+}
+
+uint32_t HELPER(rbit)(uint32_t x)
+{
+    return revbit32(x);
 }
 
 uint32_t HELPER(add_setq)(CPUARMState *env, uint32_t a, uint32_t b)
@@ -426,9 +482,9 @@ void HELPER(cpsr_write_eret)(CPUARMState *env, uint32_t val)
 {
     uint32_t mask;
 
-    qemu_mutex_lock_iothread();
+    bql_lock();
     arm_call_pre_el_change_hook(env_archcpu(env));
-    qemu_mutex_unlock_iothread();
+    bql_unlock();
 
     mask = aarch32_cpsr_valid_mask(env->features, &env_archcpu(env)->isar);
     cpsr_write(env, val, mask, CPSRWriteExceptionReturn);
@@ -441,9 +497,9 @@ void HELPER(cpsr_write_eret)(CPUARMState *env, uint32_t val)
     env->regs[15] &= (env->thumb ? ~1 : ~3);
     arm_rebuild_hflags(env);
 
-    qemu_mutex_lock_iothread();
+    bql_lock();
     arm_call_el_change_hook(env_archcpu(env));
-    qemu_mutex_unlock_iothread();
+    bql_unlock();
 }
 
 /* Access to user mode registers from privileged modes.  */
@@ -802,9 +858,9 @@ void HELPER(set_cp_reg)(CPUARMState *env, const void *rip, uint32_t value)
     const ARMCPRegInfo *ri = rip;
 
     if (ri->type & ARM_CP_IO) {
-        qemu_mutex_lock_iothread();
+        bql_lock();
         ri->writefn(env, ri, value);
-        qemu_mutex_unlock_iothread();
+        bql_unlock();
     } else {
         ri->writefn(env, ri, value);
     }
@@ -816,9 +872,9 @@ uint32_t HELPER(get_cp_reg)(CPUARMState *env, const void *rip)
     uint32_t res;
 
     if (ri->type & ARM_CP_IO) {
-        qemu_mutex_lock_iothread();
+        bql_lock();
         res = ri->readfn(env, ri);
-        qemu_mutex_unlock_iothread();
+        bql_unlock();
     } else {
         res = ri->readfn(env, ri);
     }
@@ -831,9 +887,9 @@ void HELPER(set_cp_reg64)(CPUARMState *env, const void *rip, uint64_t value)
     const ARMCPRegInfo *ri = rip;
 
     if (ri->type & ARM_CP_IO) {
-        qemu_mutex_lock_iothread();
+        bql_lock();
         ri->writefn(env, ri, value);
-        qemu_mutex_unlock_iothread();
+        bql_unlock();
     } else {
         ri->writefn(env, ri, value);
     }
@@ -845,9 +901,9 @@ uint64_t HELPER(get_cp_reg64)(CPUARMState *env, const void *rip)
     uint64_t res;
 
     if (ri->type & ARM_CP_IO) {
-        qemu_mutex_lock_iothread();
+        bql_lock();
         res = ri->readfn(env, ri);
-        qemu_mutex_unlock_iothread();
+        bql_unlock();
     } else {
         res = ri->readfn(env, ri);
     }

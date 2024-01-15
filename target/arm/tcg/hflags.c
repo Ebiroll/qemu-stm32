@@ -8,6 +8,7 @@
 #include "qemu/osdep.h"
 #include "cpu.h"
 #include "internals.h"
+#include "cpu-features.h"
 #include "exec/helper-proto.h"
 #include "cpregs.h"
 
@@ -326,7 +327,7 @@ static CPUARMTBFlags rebuild_hflags_a64(CPUARMState *env, int el, int fp_el,
             DP_TBFLAG_A64(flags, MTE0_ACTIVE, 1);
         }
         /*
-         * For unpriv tag-setting accesses we alse need ATA0. Again, in
+         * For unpriv tag-setting accesses we also need ATA0. Again, in
          * contexts where unpriv and normal insns are the same we
          * duplicate the ATA bit to save effort for translate-a64.c.
          */

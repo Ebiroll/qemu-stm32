@@ -31,6 +31,7 @@
 #include "hw/core/tcg-cpu-ops.h"
 #endif /* CONFIG_TCG */
 #include "internals.h"
+#include "cpu-features.h"
 #include "exec/exec-all.h"
 #include "hw/qdev-properties.h"
 #if !defined(CONFIG_USER_ONLY)
@@ -295,6 +296,8 @@ static void arm_cpu_reset_hold(Object *obj)
         env->cp15.sctlr_el[1] |= SCTLR_TSCXT;
         /* Disable access to Debug Communication Channel (DCC). */
         env->cp15.mdscr_el1 |= 1 << 12;
+        /* Enable FEAT_MOPS */
+        env->cp15.sctlr_el[1] |= SCTLR_MSCEN;
 #else
         /* Reset into the highest available EL */
         if (arm_feature(env, ARM_FEATURE_EL3)) {
@@ -1683,7 +1686,7 @@ void arm_cpu_post_init(Object *obj)
     }
 
     if (kvm_enabled()) {
-        kvm_arm_add_vcpu_properties(obj);
+        kvm_arm_add_vcpu_properties(cpu);
     }
 
 #ifndef CONFIG_USER_ONLY
@@ -1738,6 +1741,16 @@ void arm_cpu_finalize_features(ARMCPU *cpu, Error **errp)
         if (local_err != NULL) {
             error_propagate(errp, local_err);
             return;
+        }
+
+        /*
+         * FEAT_SME is not architecturally dependent on FEAT_SVE (unless
+         * FEAT_SME_FA64 is present). However our implementation currently
+         * assumes it, so if the user asked for sve=off then turn off SME also.
+         * (KVM doesn't currently support SME at all.)
+         */
+        if (cpu_isar_feature(aa64_sme, cpu) && !cpu_isar_feature(aa64_sve, cpu)) {
+            object_property_set_bool(OBJECT(cpu), "sme", false, &error_abort);
         }
 
         arm_cpu_sme_finalize(cpu, &local_err);
@@ -2398,10 +2411,7 @@ static ObjectClass *arm_cpu_class_by_name(const char *cpu_model)
     oc = object_class_by_name(typename);
     g_strfreev(cpuname);
     g_free(typename);
-    if (!oc || !object_class_dynamic_cast(oc, TYPE_ARM_CPU) ||
-        object_class_is_abstract(oc)) {
-        return NULL;
-    }
+
     return oc;
 }
 

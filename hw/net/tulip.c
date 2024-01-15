@@ -48,7 +48,7 @@ struct TULIPState {
 
 static const VMStateDescription vmstate_pci_tulip = {
     .name = "tulip",
-    .fields = (VMStateField[]) {
+    .fields = (const VMStateField[]) {
         VMSTATE_PCI_DEVICE(dev, TULIPState),
         VMSTATE_UINT32_ARRAY(csr, TULIPState, 16),
         VMSTATE_UINT32(old_csr9, TULIPState),
@@ -983,7 +983,8 @@ static void pci_tulip_realize(PCIDevice *pci_dev, Error **errp)
 
     s->nic = qemu_new_nic(&net_tulip_info, &s->c,
                           object_get_typename(OBJECT(pci_dev)),
-                          pci_dev->qdev.id, s);
+                          pci_dev->qdev.id,
+                          &pci_dev->qdev.mem_reentrancy_guard, s);
     qemu_format_nic_info_str(qemu_get_queue(s->nic), s->c.macaddr.a);
 }
 

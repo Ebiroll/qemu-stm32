@@ -32,8 +32,6 @@
 #include "../tcg-ldst.c.inc"
 #include <asm/hwcap.h>
 
-bool use_lsx_instructions;
-
 #ifdef CONFIG_DEBUG_TCG
 static const char * const tcg_target_reg_names[TCG_TARGET_NB_REGS] = {
     "zero",
@@ -309,6 +307,9 @@ static bool tcg_out_mov(TCGContext *s, TCGType type, TCGReg ret, TCGReg arg)
          * `or dst, src, zero`.
          */
         tcg_out_opc_or(s, ret, arg, TCG_REG_ZERO);
+        break;
+    case TCG_TYPE_V128:
+        tcg_out_opc_vori_b(s, ret, arg, 0);
         break;
     default:
         g_assert_not_reached();
@@ -1103,13 +1104,18 @@ static void tcg_out_qemu_ldst_i128(TCGContext *s, TCGReg data_lo, TCGReg data_hi
         }
     } else {
         /* Otherwise use a pair of LD/ST. */
-        tcg_out_opc_add_d(s, TCG_REG_TMP0, h.base, h.index);
+        TCGReg base = h.base;
+        if (h.index != TCG_REG_ZERO) {
+            base = TCG_REG_TMP0;
+            tcg_out_opc_add_d(s, base, h.base, h.index);
+        }
         if (is_ld) {
-            tcg_out_opc_ld_d(s, data_lo, TCG_REG_TMP0, 0);
-            tcg_out_opc_ld_d(s, data_hi, TCG_REG_TMP0, 8);
+            tcg_debug_assert(base != data_lo);
+            tcg_out_opc_ld_d(s, data_lo, base, 0);
+            tcg_out_opc_ld_d(s, data_hi, base, 8);
         } else {
-            tcg_out_opc_st_d(s, data_lo, TCG_REG_TMP0, 0);
-            tcg_out_opc_st_d(s, data_hi, TCG_REG_TMP0, 8);
+            tcg_out_opc_st_d(s, data_lo, base, 0);
+            tcg_out_opc_st_d(s, data_hi, base, 8);
         }
     }
 
@@ -1436,6 +1442,13 @@ static void tcg_out_op(TCGContext *s, TCGOpcode opc,
         } else {
             tcg_out_opc_sub_d(s, a0, a1, a2);
         }
+        break;
+
+    case INDEX_op_neg_i32:
+        tcg_out_opc_sub_w(s, a0, TCG_REG_ZERO, a1);
+        break;
+    case INDEX_op_neg_i64:
+        tcg_out_opc_sub_d(s, a0, TCG_REG_ZERO, a1);
         break;
 
     case INDEX_op_mul_i32:
@@ -2049,7 +2062,7 @@ static TCGConstraintSetIndex tcg_target_op_def(TCGOpcode op)
 
     case INDEX_op_qemu_ld_a32_i128:
     case INDEX_op_qemu_ld_a64_i128:
-        return C_O2_I1(r, r, r);
+        return C_N2_I1(r, r, r);
 
     case INDEX_op_qemu_st_a32_i128:
     case INDEX_op_qemu_st_a64_i128:
@@ -2073,6 +2086,8 @@ static TCGConstraintSetIndex tcg_target_op_def(TCGOpcode op)
     case INDEX_op_extrl_i64_i32:
     case INDEX_op_extrh_i64_i32:
     case INDEX_op_ext_i32_i64:
+    case INDEX_op_neg_i32:
+    case INDEX_op_neg_i64:
     case INDEX_op_not_i32:
     case INDEX_op_not_i64:
     case INDEX_op_extract_i32:
@@ -2309,10 +2324,6 @@ static void tcg_target_init(TCGContext *s)
         exit(EXIT_FAILURE);
     }
 
-    if (hwcap & HWCAP_LOONGARCH_LSX) {
-        use_lsx_instructions = 1;
-    }
-
     tcg_target_available_regs[TCG_TYPE_I32] = ALL_GENERAL_REGS;
     tcg_target_available_regs[TCG_TYPE_I64] = ALL_GENERAL_REGS;
 
@@ -2328,7 +2339,7 @@ static void tcg_target_init(TCGContext *s)
     tcg_regset_reset_reg(tcg_target_call_clobber_regs, TCG_REG_S8);
     tcg_regset_reset_reg(tcg_target_call_clobber_regs, TCG_REG_S9);
 
-    if (use_lsx_instructions) {
+    if (cpuinfo & CPUINFO_LSX) {
         tcg_target_available_regs[TCG_TYPE_V128] = ALL_VECTOR_REGS;
         tcg_regset_reset_reg(tcg_target_call_clobber_regs, TCG_REG_V24);
         tcg_regset_reset_reg(tcg_target_call_clobber_regs, TCG_REG_V25);

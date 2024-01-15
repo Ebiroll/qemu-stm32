@@ -426,7 +426,7 @@ extern const XtensaOpcodeTranslators xtensa_core_opcodes;
 extern const XtensaOpcodeTranslators xtensa_fpu2000_opcodes;
 extern const XtensaOpcodeTranslators xtensa_fpu_opcodes;
 
-struct XtensaConfig {
+typedef struct XtensaConfig {
     const char *name;
     uint64_t options;
     XtensaGdbRegmap gdb_regmap;
@@ -489,7 +489,7 @@ struct XtensaConfig {
     const xtensa_mpu_entry *mpu_bg;
 
     bool use_first_nan;
-};
+} XtensaConfig;
 
 typedef struct XtensaConfigList {
     const XtensaConfig *config;
@@ -556,14 +556,28 @@ struct CPUArchState {
  * An Xtensa CPU.
  */
 struct ArchCPU {
-    /*< private >*/
     CPUState parent_obj;
-    /*< public >*/
 
     CPUXtensaState env;
     Clock *clock;
 };
 
+/**
+ * XtensaCPUClass:
+ * @parent_realize: The parent class' realize handler.
+ * @parent_phases: The parent class' reset phase handlers.
+ * @config: The CPU core configuration.
+ *
+ * An Xtensa CPU model.
+ */
+struct XtensaCPUClass {
+    CPUClass parent_class;
+
+    DeviceRealize parent_realize;
+    ResettablePhases parent_phases;
+
+    const XtensaConfig *config;
+};
 
 #ifndef CONFIG_USER_ONLY
 bool xtensa_cpu_tlb_fill(CPUState *cs, vaddr address, int size,
@@ -586,10 +600,6 @@ G_NORETURN void xtensa_cpu_do_unaligned_access(CPUState *cpu, vaddr addr,
                                                MMUAccessType access_type, int mmu_idx,
                                                uintptr_t retaddr);
 
-#define cpu_list xtensa_cpu_list
-
-#define XTENSA_CPU_TYPE_SUFFIX "-" TYPE_XTENSA_CPU
-#define XTENSA_CPU_TYPE_NAME(model) model XTENSA_CPU_TYPE_SUFFIX
 #define CPU_RESOLVING_TYPE TYPE_XTENSA_CPU
 
 #if TARGET_BIG_ENDIAN
@@ -614,7 +624,6 @@ void check_interrupts(CPUXtensaState *s);
 void xtensa_irq_init(CPUXtensaState *env);
 qemu_irq *xtensa_get_extints(CPUXtensaState *env);
 qemu_irq xtensa_get_runstall(CPUXtensaState *env);
-void xtensa_cpu_list(void);
 void xtensa_sync_window_from_phys(CPUXtensaState *env);
 void xtensa_sync_phys_from_window(CPUXtensaState *env);
 void xtensa_rotate_window(CPUXtensaState *env, uint32_t delta);

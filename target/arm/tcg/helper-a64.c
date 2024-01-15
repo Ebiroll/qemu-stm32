@@ -809,9 +809,9 @@ void HELPER(exception_return)(CPUARMState *env, uint64_t new_pc)
         goto illegal_return;
     }
 
-    qemu_mutex_lock_iothread();
+    bql_lock();
     arm_call_pre_el_change_hook(env_archcpu(env));
-    qemu_mutex_unlock_iothread();
+    bql_unlock();
 
     if (!return_to_aa64) {
         env->aarch64 = false;
@@ -876,9 +876,9 @@ void HELPER(exception_return)(CPUARMState *env, uint64_t new_pc)
      */
     aarch64_sve_change_el(env, cur_el, new_el, return_to_aa64);
 
-    qemu_mutex_lock_iothread();
+    bql_lock();
     arm_call_el_change_hook(env_archcpu(env));
-    qemu_mutex_unlock_iothread();
+    bql_unlock();
 
     return;
 
@@ -1206,6 +1206,15 @@ static void check_setg_alignment(CPUARMState *env, uint64_t ptr, uint64_t size,
     }
 }
 
+static uint64_t arm_reg_or_xzr(CPUARMState *env, int reg)
+{
+    /*
+     * Runtime equivalent of cpu_reg() -- return the CPU register value,
+     * for contexts when index 31 means XZR (not SP).
+     */
+    return reg == 31 ? 0 : env->xregs[reg];
+}
+
 /*
  * For the Memory Set operation, our implementation chooses
  * always to use "option A", where we update Xd to the final
@@ -1226,7 +1235,7 @@ static void do_setp(CPUARMState *env, uint32_t syndrome, uint32_t mtedesc,
     int rd = mops_destreg(syndrome);
     int rs = mops_srcreg(syndrome);
     int rn = mops_sizereg(syndrome);
-    uint8_t data = env->xregs[rs];
+    uint8_t data = arm_reg_or_xzr(env, rs);
     uint32_t memidx = FIELD_EX32(mtedesc, MTEDESC, MIDX);
     uint64_t toaddr = env->xregs[rd];
     uint64_t setsize = env->xregs[rn];
@@ -1286,7 +1295,7 @@ static void do_setm(CPUARMState *env, uint32_t syndrome, uint32_t mtedesc,
     int rd = mops_destreg(syndrome);
     int rs = mops_srcreg(syndrome);
     int rn = mops_sizereg(syndrome);
-    uint8_t data = env->xregs[rs];
+    uint8_t data = arm_reg_or_xzr(env, rs);
     uint64_t toaddr = env->xregs[rd] + env->xregs[rn];
     uint64_t setsize = -env->xregs[rn];
     uint32_t memidx = FIELD_EX32(mtedesc, MTEDESC, MIDX);
@@ -1349,7 +1358,7 @@ static void do_sete(CPUARMState *env, uint32_t syndrome, uint32_t mtedesc,
     int rd = mops_destreg(syndrome);
     int rs = mops_srcreg(syndrome);
     int rn = mops_sizereg(syndrome);
-    uint8_t data = env->xregs[rs];
+    uint8_t data = arm_reg_or_xzr(env, rs);
     uint64_t toaddr = env->xregs[rd] + env->xregs[rn];
     uint64_t setsize = -env->xregs[rn];
     uint32_t memidx = FIELD_EX32(mtedesc, MTEDESC, MIDX);
@@ -1405,7 +1414,7 @@ void HELPER(setge)(CPUARMState *env, uint32_t syndrome, uint32_t mtedesc)
 /*
  * Perform part of a memory copy from the guest memory at fromaddr
  * and extending for copysize bytes, to the guest memory at
- * toaddr. Both addreses are dirty.
+ * toaddr. Both addresses are dirty.
  *
  * Returns the number of bytes actually set, which might be less than
  * copysize; the caller should loop until the whole copy has been done.

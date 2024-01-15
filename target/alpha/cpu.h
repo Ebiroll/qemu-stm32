@@ -259,9 +259,7 @@ typedef struct CPUArchState {
  * An Alpha CPU.
  */
 struct ArchCPU {
-    /*< private >*/
     CPUState parent_obj;
-    /*< public >*/
 
     CPUAlphaState env;
 
@@ -269,6 +267,19 @@ struct ArchCPU {
     QEMUTimer *alarm_timer;
 };
 
+/**
+ * AlphaCPUClass:
+ * @parent_realize: The parent class' realize handler.
+ * @parent_reset: The parent class' reset handler.
+ *
+ * An Alpha CPU model.
+ */
+struct AlphaCPUClass {
+    CPUClass parent_class;
+
+    DeviceRealize parent_realize;
+    DeviceReset parent_reset;
+};
 
 #ifndef CONFIG_USER_ONLY
 extern const VMStateDescription vmstate_alpha_cpu;
@@ -280,8 +291,6 @@ hwaddr alpha_cpu_get_phys_page_debug(CPUState *cpu, vaddr addr);
 void alpha_cpu_dump_state(CPUState *cs, FILE *f, int flags);
 int alpha_cpu_gdb_read_register(CPUState *cpu, GByteArray *buf, int reg);
 int alpha_cpu_gdb_write_register(CPUState *cpu, uint8_t *buf, int reg);
-
-#define cpu_list alpha_cpu_list
 
 #include "exec/cpu-all.h"
 
@@ -428,11 +437,8 @@ enum {
 
 void alpha_translate_init(void);
 
-#define ALPHA_CPU_TYPE_SUFFIX "-" TYPE_ALPHA_CPU
-#define ALPHA_CPU_TYPE_NAME(model) model ALPHA_CPU_TYPE_SUFFIX
 #define CPU_RESOLVING_TYPE TYPE_ALPHA_CPU
 
-void alpha_cpu_list(void);
 G_NORETURN void dynamic_excp(CPUAlphaState *, uintptr_t, int, int);
 G_NORETURN void arith_excp(CPUAlphaState *, uintptr_t, int, uint64_t);
 

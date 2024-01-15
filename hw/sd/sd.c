@@ -681,7 +681,7 @@ static const VMStateDescription sd_ocr_vmstate = {
     .version_id = 1,
     .minimum_version_id = 1,
     .needed = sd_ocr_vmstate_needed,
-    .fields = (VMStateField[]) {
+    .fields = (const VMStateField[]) {
         VMSTATE_UINT32(ocr, SDState),
         VMSTATE_TIMER_PTR(ocr_power_timer, SDState),
         VMSTATE_END_OF_LIST()
@@ -706,7 +706,7 @@ static const VMStateDescription sd_vmstate = {
     .version_id = 2,
     .minimum_version_id = 2,
     .pre_load = sd_vmstate_pre_load,
-    .fields = (VMStateField[]) {
+    .fields = (const VMStateField[]) {
         VMSTATE_UINT32(mode, SDState),
         VMSTATE_INT32(state, SDState),
         VMSTATE_UINT8_ARRAY(cid, SDState, 16),
@@ -733,7 +733,7 @@ static const VMStateDescription sd_vmstate = {
         VMSTATE_BOOL(enable, SDState),
         VMSTATE_END_OF_LIST()
     },
-    .subsections = (const VMStateDescription*[]) {
+    .subsections = (const VMStateDescription * const []) {
         &sd_ocr_vmstate,
         NULL
     },
@@ -2278,16 +2278,6 @@ static void sd_class_init(ObjectClass *klass, void *data)
     sc->proto = &sd_proto_sd;
 }
 
-static const TypeInfo sd_info = {
-    .name = TYPE_SD_CARD,
-    .parent = TYPE_DEVICE,
-    .instance_size = sizeof(SDState),
-    .class_size = sizeof(SDCardClass),
-    .class_init = sd_class_init,
-    .instance_init = sd_instance_init,
-    .instance_finalize = sd_instance_finalize,
-};
-
 /*
  * We do not model the chip select pin, so allow the board to select
  * whether card should be in SSI or MMC/SD mode.  It is also up to the
@@ -2303,16 +2293,21 @@ static void sd_spi_class_init(ObjectClass *klass, void *data)
     sc->proto = &sd_proto_spi;
 }
 
-static const TypeInfo sd_spi_info = {
-    .name = TYPE_SD_CARD_SPI,
-    .parent = TYPE_SD_CARD,
-    .class_init = sd_spi_class_init,
+static const TypeInfo sd_types[] = {
+    {
+        .name           = TYPE_SD_CARD,
+        .parent         = TYPE_DEVICE,
+        .instance_size  = sizeof(SDState),
+        .class_size     = sizeof(SDCardClass),
+        .class_init     = sd_class_init,
+        .instance_init  = sd_instance_init,
+        .instance_finalize = sd_instance_finalize,
+    },
+    {
+        .name           = TYPE_SD_CARD_SPI,
+        .parent         = TYPE_SD_CARD,
+        .class_init     = sd_spi_class_init,
+    },
 };
 
-static void sd_register_types(void)
-{
-    type_register_static(&sd_info);
-    type_register_static(&sd_spi_info);
-}
-
-type_init(sd_register_types)
+DEFINE_TYPES(sd_types)

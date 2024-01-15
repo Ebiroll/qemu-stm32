@@ -1457,9 +1457,13 @@ SRST
             (on/off; default: off)
 
         ``discard-no-unref``
-            When enabled, discards from the guest will not cause cluster
-            allocations to be relinquished. This prevents qcow2 fragmentation
-            that would be caused by such discards. Besides potential
+            When enabled, data clusters will remain preallocated when they are
+            no longer used, e.g. because they are discarded or converted to
+            zero clusters. As usual, whether the old data is discarded or kept
+            on the protocol level (i.e. in the image file) depends on the
+            setting of the pass-discard-request option. Keeping the clusters
+            preallocated prevents qcow2 fragmentation that would otherwise be
+            caused by freeing and re-allocating them later. Besides potential
             performance degradation, such fragmentation can lead to increased
             allocation of clusters past the end of the image file,
             resulting in image files whose file length can grow much larger
@@ -2083,6 +2087,8 @@ DEF("display", HAS_ARG, QEMU_OPTION_display,
 #endif
 #if defined(CONFIG_COCOA)
     "-display cocoa[,full-grab=on|off][,swap-opt-cmd=on|off]\n"
+    "              [,show-cursor=on|off][,left-command-key=on|off]\n"
+    "              [,full-screen=on|off][,zoom-to-fit=on|off]\n"
 #endif
 #if defined(CONFIG_OPENGL)
     "-display egl-headless[,rendernode=<file>]\n"
@@ -2090,9 +2096,6 @@ DEF("display", HAS_ARG, QEMU_OPTION_display,
 #if defined(CONFIG_DBUS_DISPLAY)
     "-display dbus[,addr=<dbusaddr>]\n"
     "             [,gl=on|core|es|off][,rendernode=<file>]\n"
-#endif
-#if defined(CONFIG_COCOA)
-    "-display cocoa[,show-cursor=on|off][,left-command-key=on|off]\n"
 #endif
     "-display none\n"
     "                select display backend type\n"
@@ -2187,9 +2190,25 @@ SRST
         provides drop-down menus and other UI elements to configure and
         control the VM during runtime. Valid parameters are:
 
+        ``full-grab=on|off`` : Capture all key presses, including system combos.
+                               This requires accessibility permissions, since it
+                               performs a global grab on key events.
+                               (default: off) See
+                               https://support.apple.com/en-in/guide/mac-help/mh32356/mac
+
+        ``swap-opt-cmd=on|off`` : Swap the Option and Command keys so that their
+                                  key codes match their position on non-Mac
+                                  keyboards and you can use Meta/Super and Alt
+                                  where you expect them.  (default: off)
+
         ``show-cursor=on|off`` :  Force showing the mouse cursor
 
         ``left-command-key=on|off`` : Disable forwarding left command key to host
+
+        ``full-screen=on|off`` : Start in fullscreen mode
+
+        ``zoom-to-fit=on|off`` : Expand video output to the window size,
+                                 defaults to "off"
 
     ``egl-headless[,rendernode=<file>]``
         Offload all OpenGL operations to a local DRI device. For any
@@ -2424,8 +2443,10 @@ SRST
     OBP.
 ERST
 
+#ifdef CONFIG_VNC
 DEF("vnc", HAS_ARG, QEMU_OPTION_vnc ,
     "-vnc <display>  shorthand for -display vnc=<display>\n", QEMU_ARCH_ALL)
+#endif
 SRST
 ``-vnc display[,option[,option[,...]]]``
     Normally, if QEMU is compiled with graphical window support, it
@@ -3982,14 +4003,22 @@ ERST
 DEF("initrd", HAS_ARG, QEMU_OPTION_initrd, \
            "-initrd file    use 'file' as initial ram disk\n", QEMU_ARCH_ALL)
 SRST
+
 ``-initrd file``
     Use file as initial ram disk.
 
 ``-initrd "file1 arg=foo,file2"``
     This syntax is only available with multiboot.
 
-    Use file1 and file2 as modules and pass arg=foo as parameter to the
-    first module.
+    Use file1 and file2 as modules and pass ``arg=foo`` as parameter to the
+    first module. Commas can be provided in module parameters by doubling
+    them on the command line to escape them:
+
+``-initrd "bzImage earlyprintk=xen,,keep root=/dev/xvda1,initrd.img"``
+    Multiboot only. Use bzImage as the first module with
+    "``earlyprintk=xen,keep root=/dev/xvda1``" as its command line,
+    and initrd.img as the second module.
+
 ERST
 
 DEF("dtb", HAS_ARG, QEMU_OPTION_dtb, \
@@ -4072,9 +4101,13 @@ DEF("fw_cfg", HAS_ARG, QEMU_OPTION_fwcfg,
 SRST
 ``-fw_cfg [name=]name,file=file``
     Add named fw\_cfg entry with contents from file file.
+    If the filename contains comma, you must double it (for instance,
+    "file=my,,file" to use file "my,file").
 
 ``-fw_cfg [name=]name,string=str``
     Add named fw\_cfg entry with contents from string str.
+    If the string contains comma, you must double it (for instance,
+    "string=my,,string" to use file "my,string").
 
     The terminating NUL character of the contents of str will not be
     included as part of the fw\_cfg item data. To insert contents with
@@ -5209,6 +5242,18 @@ SRST
         other options.
 
         The ``share`` boolean option is on by default with memfd.
+
+    ``-object iommufd,id=id[,fd=fd]``
+        Creates an iommufd backend which allows control of DMA mapping
+        through the ``/dev/iommu`` device.
+
+        The ``id`` parameter is a unique ID which frontends (such as
+        vfio-pci of vdpa) will use to connect with the iommufd backend.
+
+        The ``fd`` parameter is an optional pre-opened file descriptor
+        resulting from ``/dev/iommu`` opening. Usually the iommufd is shared
+        across all subsystems, bringing the benefit of centralized
+        reference counting.
 
     ``-object rng-builtin,id=id``
         Creates a random number generator backend which obtains entropy
