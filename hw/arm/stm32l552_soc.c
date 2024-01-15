@@ -425,8 +425,8 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
 
     uint32_t *flash_data = (uint32_t *)memory_region_get_ram_ptr(&s->flash);
 
-    for (int i = 0; i < FLASH_SIZE / sizeof(uint32_t); i++) {
-        flash_data[i] = 0xFFFFFFFFU;
+    for (int j = 0; j < FLASH_SIZE / sizeof(uint32_t); j++) {
+        flash_data[j] = 0xFFFFFFFFU;
     }
 
     memory_region_set_dirty(&s->flash, 0, FLASH_SIZE);

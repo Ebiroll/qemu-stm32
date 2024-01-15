@@ -526,7 +526,7 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
 
     armv7m = DEVICE(&s->armv7m);
     qdev_prop_set_uint32(armv7m, "num-irq", 96);
-    qdev_prop_set_string(armv7m, "cpu-type", ARM_CPU_TYPE_NAME("cortex-m4"));
+    // qdev_prop_set_string(armv7m, "cpu-type", ARM_CPU_TYPE_NAME("cortex-m4"));
     qdev_prop_set_bit(armv7m, "enable-bitband", true);
     qdev_connect_clock_in(armv7m, "cpuclk", s->sysclk);
     qdev_connect_clock_in(armv7m, "refclk", s->refclk);
@@ -847,10 +847,10 @@ static const TypeInfo asic_ssp_info = {
 };
 
 
-static Property stm32f405_soc_properties[] = {
-    DEFINE_PROP_STRING("cpu-type", STM32F405State, cpu_type),
-    DEFINE_PROP_END_OF_LIST(),
-};
+//static Property stm32f405_soc_properties[] = {
+//    DEFINE_PROP_STRING("cpu-type", STM32F405State, cpu_type),
+//    DEFINE_PROP_END_OF_LIST(),
+//};
 
 static void stm32f405_soc_class_init(ObjectClass *klass, void *data)
 {
