@@ -84,6 +84,8 @@ system_ss.add(when: 'CONFIG_OMAP', if_true: files(
   'omap_tap.c',
 ))
 system_ss.add(when: 'CONFIG_RASPI', if_true: files(
+  'bcm2838_rng200.c',
+  'bcm2838_thermal.c',
   'bcm2835_mbox.c',
   'bcm2835_mphi.c',
   'bcm2835_property.c',
