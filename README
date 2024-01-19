@@ -74,10 +74,52 @@ aarch64-softmmu/qemu-system-aarch64  \
 
 # Emulating Raspberry Pi 4 with Qemu
 
+This repository contains raspi4b support
+
+
+QEMU provides models of the following Raspberry Pi Boards:
+| Machine      | Core          | Number of Cores | RAM     |
+|--------------|---------------|-----------------|---------|
+| raspi0       | ARM1176JZF-S  | 1               | 512 MiB |
+| raspi1lap    | ARM1176JZF-S  | 1               | 512 MiB |
+| raspi2b      | Cortex-A7     | 4               | 1 GB    |
+| raspi3ap     | Cortex-A53    | 4               | 512 MiB |
+| Raspi3b      | Cortex-A53    | 4               | 1 GB    |
+| Raspi4b      | Cortex-a71    | 4               | 2 GB    |
+
+
+```
+qemu-system-aarch64   \
+-M raspi4b            \
+-cpu cortex-a72       \
+-kernel kernel8.img   \
+-append "earlycon=pl011,mmio32,0xfe201000 console=ttyAMA0,115200  console=tty1 rootfstype=ext4 fsck.repair=yes rootwait quiet rootwait ip=192.168.10.2"   \
+-d unimp,guest_errors   \
+-trace "bcm*"   \
+-dtb bcm2711-rpi-4-b.dtb   \
+-sd 2022-09-22-raspios-bullseye-arm64-lite.img   \
+-m 2G -smp 4   \
+-serial tcp::12344,server,nowait -serial tcp::12345,server,nowait   \
+-usb -device usb-mouse -device usb-kbd    \
+-device usb-net,netdev=net0    \
+-netdev user,id=net0,hostfwd=tcp::5555-:22
+```
+
+Look here for more info on how to extract files from an image.
+Note that latest versions do have problem mounting the file system, probably due to RPI5 support
+
+https://github.com/Ebiroll/emulate-raspberry-in-qemu/
+
+
+
+# Older but useful info 
+This is how you would run with regular qemu
+
 Just a quick update before we dive in: what we're actually doing here is running Raspberry Pi OS (64-bit) on a QEMU virtual ARM setup. This isn't full-blown hardware emulation of the Raspberry Pi 4, but more about creating a virtual environment for the OS. It doesn't mimic all the specific hardware features of the Pi 4, but it's pretty useful and great for general testing. I turned to this solution mainly to extract a modified sysroot from the Raspberry Pi OS, something not readily available in other resources. For those looking into detailed emulation of the actual Raspberry Pi 4's hardware in QEMU, check out this link for the latest updates: https://gitlab.com/qemu-project/qemu/-/issues/1208.
 
 Shortcomings: No GUI yet, only console.
 
+```
 Steps
 Download Raspberry Pi OS (64-bit) from Raspberry Pi operating system images.
 Here we downloaded Raspberry Pi OS (64-bit) with desktop, Kernel version: 6.1, Debian version: 11 (bullseye), Release date: May 3rd 2023, named 2023-05-03-raspios-bullseye-arm64.img. We put it in /home/mydir.
@@ -147,15 +189,16 @@ Troubleshooting
 If you had any problem with connecting to internet, it might be because of bad DNS configurations, and you should consider adding nameserver 8.8.8.8 to top of the file /etc/resolv.conf in the machine.
 You can access the qemu monitor console with:
 $ telnet localhost 5555
-
+```
 
 
 # Unimplemeted devices,
 Now it should work, but we need more testing.
-ASIC SPI:s will be added soon.
+
 
 If you start qemu manually you can use this to launch the debugger
 # launch.json
+```
         {
             "name": "Cortex external qemu Debug",
             "cwd": "${workspaceFolder}",
@@ -172,9 +215,10 @@ If you start qemu manually you can use this to launch the debugger
             "interface": "tcp",
             "port": 2345
         }
+```
 
 # Launch of binary built with CUBE-IDE
-
+```
         {
             "name": "Cortex external qemu Debug",
             "cwd": "${workspaceFolder}/STM32CubeIDE/Debug",
@@ -199,3 +243,4 @@ If you start qemu manually you can use this to launch the debugger
                 "C:/":"/mnt/c/" 
             },
         },    
+```
