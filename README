@@ -37,6 +37,13 @@ nc 127.0.0.1 12344
 
 apt-get install libslirp-dev
 
+sudo apt-get install -y libusbredirparser-dev
+
+
+../configure  '--disable-werror' '--enable-debug' '--enable-slirp' '--enable-gtk' --enable-usb-redir
+
+Or without usbredir support
+
 ../configure --disable-werror --enable-debug --enable-slirp 
 
 # Start raspberry 3b
@@ -85,7 +92,7 @@ QEMU provides models of the following Raspberry Pi Boards:
 | raspi2b      | Cortex-A7     | 4               | 1 GB    |
 | raspi3ap     | Cortex-A53    | 4               | 512 MiB |
 | Raspi3b      | Cortex-A53    | 4               | 1 GB    |
-| Raspi4b      | Cortex-a71    | 4               | 2 GB    |
+| Raspi4b      | Cortex-a72    | 4               | 2 GB    |
 
 
 ```
@@ -216,6 +223,26 @@ If you start qemu manually you can use this to launch the debugger
             "port": 2345
         }
 ```
+
+# USB debugging
+
+Setting up qemu client 
+-device usb-host,hostbus=x,hostaddr=y, where x and y are the bus and address of the device on the server.
+
+QEMU then acts as a USB/IP client, connecting to the specified server and accessing the device as if it were locally attached.
+
+USBipd server,
+sudo apt-get install linux-tools-generic.
+
+
+# USB on WSKL2
+
+sudo apt install linux-tools-virtual hwdata
+
+Generic is not good
+
+sudo update-alternatives --install /usr/local/bin/usbipd usbipd  /usr/lib/linux-tools-5.15.0-91/usbip  20
+
 
 # Launch of binary built with CUBE-IDE
 ```

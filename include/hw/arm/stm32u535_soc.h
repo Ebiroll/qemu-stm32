@@ -30,7 +30,7 @@
 #include "hw/arm/stm32/stm32l552_usart.h"
 #include "hw/arm/stm32/stm32l552_exti.h"
 #include "hw/or-irq.h"
-#include "hw/ssi/stm32f2xx_spi.h"
+#include "hw/arm/stm32/stm32u5xx_spi.h"
 #include "hw/arm/armv7m.h"
 #include "qom/object.h"
 #include "hw/arm/stm32/stm32u535_rcc.h"
@@ -59,7 +59,7 @@ OBJECT_DECLARE_SIMPLE_TYPE(STM32U535State, STM32U535_SOC)
 #define SRAM_BASE_ADDRESS 0x20000000
 #define SRAM_SIZE (512 * 1024)
 #define CCM_BASE_ADDRESS 0x10000000
-#define CCM_SIZE (256 * 1024)
+#define CCM_SIZE (274 * 1024)
 
 struct STM32U535State {
     /*< private >*/
@@ -79,7 +79,7 @@ struct STM32U535State {
     STM32L552ADCState adc;
     Stm32FlashRegs flash_regs;
 
-    STM32F2XXSPIState spi[STM_NUM_SPIS];
+    STM32U5XXSPIState spi[STM_NUM_SPIS];
     stm32fxxx_gpio gpio[STM_NUM_GPIO];
 
     NN1002State   asic[STM_NUM_SPIS];
