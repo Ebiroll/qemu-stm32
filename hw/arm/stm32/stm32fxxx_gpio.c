@@ -246,7 +246,7 @@ static void stm32fxxx_gpio_realize(DeviceState *dev, Error **errp){
     self->GPIO.AFRL = 0;
     self->GPIO.AFRH = 0;
 
-    qdev_init_gpio_out(DEVICE(self),(qemu_irq *) &(self->pins),16);
+    qdev_init_gpio_out(DEVICE(self),(qemu_irq *) &(self->pins),32);
 
 }
 

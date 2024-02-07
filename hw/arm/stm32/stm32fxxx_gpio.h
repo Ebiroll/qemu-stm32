@@ -38,7 +38,7 @@ struct stm32fxxx_gpio {
 
     //struct stm32fxxx_state *state;
     stm32fxxx_gpio_state_t GPIO;
-    qemu_irq pins[16];
+    qemu_irq pins[32];
     //struct stm32fxxx_gpio_state *regs;
 };
 
