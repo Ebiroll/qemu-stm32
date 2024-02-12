@@ -72,9 +72,14 @@ static void bcm2835_powermgt_write(void *opaque, hwaddr offset,
         s->rstc = value;
         if (value & V_RSTC_RESET) {
             if ((s->rsts & 0xfff) == V_RSTS_POWEROFF) {
-                qemu_system_shutdown_request(SHUTDOWN_CAUSE_GUEST_SHUTDOWN);
+                // OLAS - 
+                 /* Enable the wdog timer */
+                 // val = in32(base + BCM2711_PM_RSTC) & PM_RSTC_WRCFG_CLR;
+                 // val |= (PM_PASSWORD | PM_RSTC_WRCFG_FULL_RESET);
+                 // out32(base + BCM2711_PM_RSTC, val);
+               // qemu_system_shutdown_request(SHUTDOWN_CAUSE_GUEST_SHUTDOWN);
             } else {
-                qemu_system_reset_request(SHUTDOWN_CAUSE_GUEST_RESET);
+               // qemu_system_reset_request(SHUTDOWN_CAUSE_GUEST_RESET);
             }
         }
         break;

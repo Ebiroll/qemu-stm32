@@ -16,7 +16,7 @@
 #define TYPE_BCM2835_AUX "bcm2835-aux"
 OBJECT_DECLARE_SIMPLE_TYPE(BCM2835AuxState, BCM2835_AUX)
 
-#define BCM2835_AUX_RX_FIFO_LEN 8
+#define BCM2835_AUX_RX_FIFO_LEN 128
 
 struct BCM2835AuxState {
     /*< private >*/
