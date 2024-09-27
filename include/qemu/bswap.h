@@ -44,6 +44,7 @@ static inline void bswap64s(uint64_t *s)
             do { *p = glue(__builtin_bswap, size)(*p); } while (0)
 #else
 #define le_bswap(v, size) (v)
+#define be_bswap24(v) bswap24(v)
 #define le_bswap24(v) (v)
 #define be_bswap(v, size) glue(__builtin_bswap, size)(v)
 #define le_bswaps(v, size)

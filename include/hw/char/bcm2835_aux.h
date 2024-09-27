@@ -26,6 +26,10 @@ struct BCM2835AuxState {
     MemoryRegion iomem;
     CharBackend chr;
     qemu_irq irq;
+    uint32_t baud_reg;
+    uint32_t cntl;
+    uint32_t lcr;
+
 
     uint8_t read_fifo[BCM2835_AUX_RX_FIFO_LEN];
     uint8_t read_pos, read_count;

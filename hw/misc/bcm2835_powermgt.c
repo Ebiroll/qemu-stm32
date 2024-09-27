@@ -89,8 +89,8 @@ static void bcm2835_powermgt_write(void *opaque, hwaddr offset,
         s->rsts = value;
         break;
     case R_WDOG:
-        qemu_log_mask(LOG_UNIMP,
-                      "bcm2835_powermgt_write: WDOG\n");
+        //qemu_log_mask(LOG_UNIMP,
+        //              "bcm2835_powermgt_write: WDOG\n");
         s->wdog = value;
         break;
 

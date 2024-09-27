@@ -109,7 +109,8 @@ static uint64_t bcm2835_aux_read(void *opaque, hwaddr offset, unsigned size)
         return res;
 
     case AUX_MU_LCR_REG:
-        qemu_log_mask(LOG_UNIMP, "%s: AUX_MU_LCR_REG unsupported\n", __func__);
+        return s->lcr;
+        //qemu_log_mask(LOG_UNIMP, "%s: AUX_MU_LCR_REG unsupported\n", __func__);
         return 0;
 
     case AUX_MU_MCR_REG:
@@ -144,8 +145,9 @@ static uint64_t bcm2835_aux_read(void *opaque, hwaddr offset, unsigned size)
         return res;
 
     case AUX_MU_BAUD_REG:
-        qemu_log_mask(LOG_UNIMP, "%s: AUX_MU_BAUD_REG unsupported\n", __func__);
-        return 0;
+    return s->baud_reg;
+        //qemu_log_mask(LOG_UNIMP, "%s: AUX_MU_BAUD_REG unsupported\n", __func__);
+        //return 0;
 
     default:
         qemu_log_mask(LOG_GUEST_ERROR, "%s: Bad offset %"HWADDR_PRIx"\n",
@@ -188,9 +190,20 @@ static void bcm2835_aux_write(void *opaque, hwaddr offset, uint64_t value,
             s->read_count = 0;
         }
         break;
+/* 
+AUX_MU_LCR_REG - Line Control Register:
+Address: This register is part of the Mini UART peripheral and can be accessed via its memory-mapped I/O address on the BCM2835.
+Register Bits:
+Bits [1:0]: Data Length Select
 
+These two bits are used to configure the number of bits in each character transmitted or received.
+00: 7-bit mode
+01: 8-bit mode
+
+*/
     case AUX_MU_LCR_REG:
-        qemu_log_mask(LOG_UNIMP, "%s: AUX_MU_LCR_REG unsupported\n", __func__);
+        s->lcr= (uint32_t) value;
+        //qemu_log_mask(LOG_UNIMP, "%s: AUX_MU_LCR_REG unsupported\n", __func__);
         break;
 
     case AUX_MU_MCR_REG:
@@ -202,11 +215,13 @@ static void bcm2835_aux_write(void *opaque, hwaddr offset, uint64_t value,
         break;
 
     case AUX_MU_CNTL_REG:
-        qemu_log_mask(LOG_UNIMP, "%s: AUX_MU_CNTL_REG unsupported\n", __func__);
+        s->cntl= (uint32_t) value;
+        // qemu_log_mask(LOG_UNIMP, "%s: AUX_MU_CNTL_REG unsupported\n", __func__);
         break;
 
     case AUX_MU_BAUD_REG:
-        qemu_log_mask(LOG_UNIMP, "%s: AUX_MU_BAUD_REG unsupported\n", __func__);
+        s->baud_reg = (uint32_t) value;
+        //qemu_log_mask(LOG_UNIMP, "%s: AUX_MU_BAUD_REG unsupported\n", __func__);
         break;
 
     default:

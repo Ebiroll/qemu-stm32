@@ -17,6 +17,8 @@
 #define PCIE_MMIO_ARM_OFFSET    0x600000000
 #define PCIE_MMIO_SIZE          0x40000000
 
+#define BCM2838_SDHC_CAPAREG 0x0000A52545EE6432
+
 #define CLOCK_ISP_OFFSET        0xc11000
 #define CLOCK_ISP_SIZE          0x100
 
@@ -129,7 +131,7 @@ static void bcm2838_peripherals_realize(DeviceState *dev, Error **errp)
     object_property_set_uint(OBJECT(&s->emmc2), "sd-spec-version", 3,
                              &error_abort);
     object_property_set_uint(OBJECT(&s->emmc2), "capareg",
-                             BCM2835_SDHC_CAPAREG, &error_abort);
+                             BCM2838_SDHC_CAPAREG, &error_abort);
     object_property_set_bool(OBJECT(&s->emmc2), "pending-insert-quirk", true,
                              &error_abort);
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->emmc2), errp)) {

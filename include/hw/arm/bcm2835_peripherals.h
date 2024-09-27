@@ -56,6 +56,7 @@ struct BCMSocPeripheralBaseState {
     BCM2835PowerMgtState powermgt;
     BCM2835CprmanState cprman;
     PL011State uart0;
+    PL011State uart4;
     BCM2835AuxState aux;
     BCM2835FBState fb;
     BCM2835DMAState dma;

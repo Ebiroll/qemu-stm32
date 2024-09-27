@@ -96,6 +96,11 @@ static void raspi_peripherals_base_init(Object *obj)
     /* UART0 */
     object_initialize_child(obj, "uart0", &s->uart0, TYPE_PL011);
 
+
+    /* UART4 */
+    object_initialize_child(obj, "uart4", &s->uart4, TYPE_PL011);
+
+
     /* AUX / UART1 */
     object_initialize_child(obj, "aux", &s->aux, TYPE_BCM2835_AUX);
 
@@ -261,8 +266,13 @@ void bcm_soc_peripherals_common_realize(DeviceState *dev, Error **errp)
     }
     memory_region_add_subregion(&s->peri_mr, CPRMAN_OFFSET,
                 sysbus_mmio_get_region(SYS_BUS_DEVICE(&s->cprman), 0));
+
     qdev_connect_clock_in(DEVICE(&s->uart0), "clk",
                           qdev_get_clock_out(DEVICE(&s->cprman), "uart-out"));
+
+    qdev_connect_clock_in(DEVICE(&s->uart4), "clk",
+                          qdev_get_clock_out(DEVICE(&s->cprman), "uart-out"));
+
 
     memory_region_add_subregion(&s->peri_mr, ARMCTRL_IC_OFFSET,
                 sysbus_mmio_get_region(SYS_BUS_DEVICE(&s->ic), 0));
@@ -298,6 +308,22 @@ void bcm_soc_peripherals_common_realize(DeviceState *dev, Error **errp)
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->uart0), 0,
         qdev_get_gpio_in_named(DEVICE(&s->ic), BCM2835_IC_GPU_IRQ,
                                INTERRUPT_UART0));
+
+
+    /* UART4 */
+    qdev_prop_set_chr(DEVICE(&s->uart4), "chardev", serial_hd(2));
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->uart4), errp)) {
+        return;
+    }
+
+    memory_region_add_subregion(&s->peri_mr, UART4_OFFSET,
+                sysbus_mmio_get_region(SYS_BUS_DEVICE(&s->uart4), 0));
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->uart4), 0,
+        qdev_get_gpio_in_named(DEVICE(&s->ic), BCM2835_IC_GPU_IRQ,
+                               INTERRUPT_UART0));
+
+    // OLAS
+
 
     /* AUX / UART1 */
     qdev_prop_set_chr(DEVICE(&s->aux), "chardev", serial_hd(1));
