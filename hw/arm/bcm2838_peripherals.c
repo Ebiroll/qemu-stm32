@@ -11,12 +11,15 @@
 #include "qemu/module.h"
 #include "hw/arm/raspi_platform.h"
 #include "hw/arm/bcm2838_peripherals.h"
+extern int nb_nics;
+extern NICInfo nd_table[MAX_NICS];
 
 #define PCIE_RC_OFFSET          0x1500000
 #define PCIE_MMIO_OFFSET        0xc0000000
 #define PCIE_MMIO_ARM_OFFSET    0x600000000
 #define PCIE_MMIO_SIZE          0x40000000
 
+// From 4b hardware
 #define BCM2838_SDHC_CAPAREG 0x0000A52545EE6432
 
 #define CLOCK_ISP_OFFSET        0xc11000
@@ -25,8 +28,6 @@
 /* Lower peripheral base address on the VC (GPU) system bus */
 #define BCM2838_VC_PERI_LOW_BASE 0x7c000000
 
-/* Capabilities for SD controller: no DMA, high-speed, default clocks etc. */
-#define BCM2835_SDHC_CAPAREG 0x52134b4
 
 static void bcm2838_peripherals_init(Object *obj)
 {

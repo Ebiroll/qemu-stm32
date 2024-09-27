@@ -199,13 +199,22 @@ static const int exti_irq[] =  { 11, 12,13,14,15,16,17,18,
 
 void init_m33_features(Object *obj);
 
+//static inline int set_feature(ARMCPU *env, int feature)
+//{
+//    return (env->features & (1ULL << feature)) != 0;
+//}
+
+
 void init_m33_features(Object *obj) {
+    /* TODO FIX!!!
+ 
     ARMCPU *cpu = ARM_CPU(obj);
     set_feature(&cpu->env, ARM_FEATURE_V8);
     set_feature(&cpu->env, ARM_FEATURE_M);
     set_feature(&cpu->env, ARM_FEATURE_M_MAIN);
     unset_feature(&cpu->env, ARM_FEATURE_M_SECURITY);
     set_feature(&cpu->env, ARM_FEATURE_THUMB_DSP);
+
     //set_feature(&cpu->env,ARM_FEATURE_V8_1M);
     cpu->midr = 0x410fd213; // r0p3 
     cpu->pmsav7_dregion = 16;
@@ -231,6 +240,7 @@ void init_m33_features(Object *obj) {
     cpu->clidr = 0x00000000;
     cpu->ctr = 0x8000c000;
     cpu->env.v7m.secure = false;
+    */
 }
 
 extern hwaddr bitband_output_addr[2];
@@ -361,6 +371,7 @@ static void stm32l552_soc_reset(DeviceState *dev)
     STM32L552State *s = STM32L552_SOC(dev);
     /* Failed attempt to set truszone SCB registers 
        by looking at them in the debugger */
+       /*
     s->armv7m.cpu->env.v7m.secure = s->armv7m.cpu->env.v7m.secure;
     s->armv7m.cpu->env.v7m.aircr = R_V7M_AIRCR_BFHFNMINS_MASK;
     s->armv7m.cpu->env.v7m.nsacr = 0xcff;
@@ -373,7 +384,7 @@ static void stm32l552_soc_reset(DeviceState *dev)
     env->v7m.ccr[M_REG_NS]=0;
     env->v7m.ccr[M_REG_S]=0x211;
     env->v7m.aircr=0x0fa05200;
-
+*/
 
  }
 
@@ -654,7 +665,7 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
     //sysbus_connect_irq(busdev, 9, qdev_get_gpio_in(armv7m, 19));
 
 
-
+/*
 
     s->armv7m.cpu->env.v7m.secure = false;
     CPUARMState *env = &s->armv7m.cpu->env;
@@ -668,7 +679,7 @@ static void stm32l552_soc_realize(DeviceState *dev_soc, Error **errp)
     env->v7m.ccr[M_REG_S]=0x211;
     env->v7m.aircr=0x0fa05200;
 
-
+*/
 
 
     //qdev_prop_set_bit(DEVICE(&s->armv7m.cpu->env), "secure", false);

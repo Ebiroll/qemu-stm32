@@ -256,11 +256,12 @@ static void stm32_flash_realize(DeviceState *dev, Error **errp)
     }
 
     if (stm32fl->blk) {
-        if (!blk_check_size_and_read_all(stm32fl->blk, stm32fl->storage, total_len,
-                                         errp)) {
-            vmstate_unregister_ram(&stm32fl->mem, DEVICE(stm32fl));
-            return;
-        }
+        // TODO!!! Fix this
+        //if (!blk_check_size_and_read_all(stm32fl->blk, stm32fl->storage, (uint64_t) total_len,
+        //                                 errp)) {
+        //    vmstate_unregister_ram(&stm32fl->mem, DEVICE(stm32fl));
+        //    return;
+        //}
     }
 
     /*
