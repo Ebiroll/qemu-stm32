@@ -33,6 +33,7 @@
 #include "migration/vmstate.h"
 #include "hw/qdev-properties.h"
 #include "hw/arm/boot.h"
+#include "exec/address-spaces.h"
 
 struct stm32f429i_disco {
     DeviceState *soc;
