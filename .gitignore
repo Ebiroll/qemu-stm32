@@ -22,3 +22,4 @@ GTAGS
 *.patch
 *.gcov
 rasp/*
+hw/arm/asic_sim/
