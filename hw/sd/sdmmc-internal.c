@@ -10,7 +10,7 @@
 
 #include "qemu/osdep.h"
 #include "sdmmc-internal.h"
-
+#if 0
 const char *sd_cmd_name(uint8_t cmd)
 {
     static const char *cmd_abbrev[SDMMC_CMD_MAX] = {
@@ -70,3 +70,5 @@ const char *sd_acmd_name(uint8_t cmd)
 
     return acmd_abbrev[cmd] ? acmd_abbrev[cmd] : "UNKNOWN_ACMD";
 }
+
+#endif

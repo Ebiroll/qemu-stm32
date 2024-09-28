@@ -342,6 +342,7 @@ static void sd_set_mode(SDState *sd)
     }
 }
 
+#if 0
 static const sd_cmd_type_t sd_cmd_type[SDMMC_CMD_MAX] = {
     sd_bc,   sd_none, sd_bcr,  sd_bcr,  sd_none, sd_none, sd_none, sd_ac,
     sd_bcr,  sd_ac,   sd_ac,   sd_adtc, sd_ac,   sd_ac,   sd_none, sd_ac,
@@ -362,7 +363,7 @@ static const int sd_cmd_class[SDMMC_CMD_MAX] = {
     5,  5, 10, 10, 10, 10,  5,  9,  9,  9,  7,  7,  7,  7,  7,  7,
     7,  7, 10,  7,  9,  9,  9,  8,  8, 10,  8,  8,  8,  8,  8,  8,
 };
-
+#endif
 static uint8_t sd_crc7(const void *message, size_t width)
 {
     int i, bit;
@@ -2069,9 +2070,12 @@ static sd_rsp_type_t sd_acmd_SEND_SCR(SDState *sd, SDRequest req)
 
 static sd_rsp_type_t sd_normal_command(SDState *sd, SDRequest req)
 {
-    uint32_t rca = 0x0000;
+    //uint32_t rca = 0x0000;
     uint64_t addr = (sd->ocr & (1 << 30)) ? (uint64_t) req.arg << 9 : req.arg;
 
+    //uint64_t addr;
+
+    sd->last_cmd_name = sd_cmd_name(sd, req.cmd);
     /* CMD55 precedes an ACMD, so we are not interested in tracing it.
      * However there is no ACMD55, so we want to trace this particular case.
      */
@@ -2309,18 +2313,18 @@ static sd_rsp_type_t sd_normal_command(SDState *sd, SDRequest req)
         case sd_inactive_state:
             return sd_illegal;
         case sd_idle_state:
-            if (rca) {
-                qemu_log_mask(LOG_GUEST_ERROR,
-                              "SD: illegal RCA 0x%04x for APP_CMD\n", req.cmd);
-            }
+            //if (rca) {
+            //    qemu_log_mask(LOG_GUEST_ERROR,
+            //                  "SD: illegal RCA 0x%04x for APP_CMD\n", req.cmd);
+            //}
         default:
             break;
         }
-        if (!sd_is_spi(sd)) {
-            if (sd->rca != rca) {
-                return sd_r0;
-            }
-        }
+        //if (!sd_is_spi(sd)) {
+        //    if (sd->rca != rca) {
+        //        return sd_r0;
+        //    }
+        //}
         sd->expecting_acmd = true;
         sd->card_status |= APP_CMD;
         return sd_r1;
@@ -2354,17 +2358,29 @@ static sd_rsp_type_t sd_normal_command(SDState *sd, SDRequest req)
     return sd_invalid_state_for_cmd(sd, req);
 }
 
+// This is pre mmc , OLAS
+//static const struct SDProto *sd_proto(SDState *sd)
+//{
+//    SDCardClass *sc = SD_CARD_GET_CLASS(sd);
+//
+//    return sc->proto;
+//}
+
+
 static sd_rsp_type_t sd_app_command(SDState *sd,
                                     SDRequest req)
 {
-    trace_sdcard_app_command(sd_proto(sd)->name, sd_acmd_name(req.cmd),
-                             req.cmd, req.arg, sd_state_name(sd->state));
+    // Saved for reference
+    assert (false);
+    sd->last_cmd_name = sd_acmd_name(sd, req.cmd);
+
+    //trace_sdcard_app_command(sd_proto(sd)->name, sd_acmd_name(req.cmd),
+    //                         req.cmd, req.arg, sd_state_name(sd->state));
     sd->card_status |= APP_CMD;
 
-    if (sd_proto(sd)->acmd[req.cmd]) {
-        return sd_proto(sd)->acmd[req.cmd](sd, req);
+ if (sd->proto->acmd[req.cmd].handler) {
+        return sd->proto->acmd[req.cmd].handler(sd, req);
     }
-
     switch (req.cmd) {
     case 6:  /* ACMD6:  SET_BUS_WIDTH */
         switch (sd->state) {
@@ -2869,6 +2885,7 @@ uint8_t sd_read_byte(SDState *sd)
             }
         }
         break;
+#if 0
 
     case 19:    /* CMD19:  SEND_TUNING_BLOCK (SD) */
         if (sd->data_offset >= SD_TUNING_BLOCK_SIZE - 1) {
@@ -2890,7 +2907,6 @@ uint8_t sd_read_byte(SDState *sd)
         if (sd->data_offset >= 4)
             sd->state = sd_transfer_state;
         break;
-
     case 51:  /* ACMD51: SEND_SCR */
         ret = sd->scr[sd->data_offset ++];
 
@@ -2906,6 +2922,7 @@ uint8_t sd_read_byte(SDState *sd)
         if (sd->data_offset >= sd->blk_len)
             sd->state = sd_transfer_state;
         break;
+#endif
 
     default:
         qemu_log_mask(LOG_GUEST_ERROR, "%s: unknown command\n", __func__);
