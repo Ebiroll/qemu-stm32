@@ -39,7 +39,7 @@
 #include "hw/arm/stm32/stm32fxxx_gpio.h"
 #include "hw/arm/stm32/stm32l552_adc.h"
 #include "hw/arm/stm32/stm32l552_flash.h"
-#include "hw/arm/asic_sim/nn1002.h"
+//#include "hw/arm/asic_sim/nn1002.h"
 #include "hw/arm/stm32/stm32l552_dmamux.h"
 #include "hw/arm/stm32/stm32u535_usb.h"
 
@@ -82,7 +82,7 @@ struct STM32U535State {
     STM32U5XXSPIState spi[STM_NUM_SPIS];
     stm32fxxx_gpio gpio[STM_NUM_GPIO];
 
-    NN1002State   asic[STM_NUM_SPIS];
+    //NN1002State   asic[STM_NUM_SPIS];
     //DeviceState *asic1;
 
     //stm32fxxx_pwr     pwr;

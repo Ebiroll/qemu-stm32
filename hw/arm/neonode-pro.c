@@ -31,7 +31,7 @@
 #include "qemu/error-report.h"
 #include "hw/arm/stm32l552_soc.h"
 #include "hw/arm/boot.h"
-#include "hw/arm/asic_sim/nn1002.h"
+//#include "hw/arm/asic_sim/nn1002.h"
 
 
 struct TSMPROMachineClass {

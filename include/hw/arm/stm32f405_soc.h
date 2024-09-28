@@ -39,7 +39,7 @@
 #include "hw/arm/stm32/stm32fxxx_pwr.h"
 #include "hw/arm/stm32/stm32fxxx_gpio.h"
 #include "hw/arm/stm32/stm32f4xx_i2c.h"
-#include "hw/arm/asic_sim/nn1002.h"
+//#include "hw/arm/asic_sim/nn1002.h"
 #include "hw/ssi/ssi.h"
 
 #define TYPE_ASIC_SSP "asic-ssp"
@@ -88,7 +88,7 @@ struct STM32F405State {
 
     DeviceState   *mux;
     //SSIBus        *hSpi1;
-    NN1002State   asic[3];
+    //NN1002State   asic[3];
 
     stm32fxxx_pwr     pwr;
     STM32FXXXRccState rcc;

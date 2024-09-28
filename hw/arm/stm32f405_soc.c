@@ -75,12 +75,14 @@ static void asic_ssp_realize(SSIPeripheral *d, Error **errp)
 }
 
 //  STM32F405State *s = STM32F405_SOC(dev_soc);
+#ifdef USE_ASIC
+
 static void asic_ssp_attach(STM32F405State *s,Error **errp)
 {
     //void *spibus;
+
     void *bus;
     //spibus = qdev_get_child_bus(DEVICE(&s->spi[1]), "ssi");
-
 
     bus = qdev_get_child_bus(s->mux, "ssi0");
     if (!qdev_realize(DEVICE(&s->asic[0]), bus, errp)) {
@@ -107,6 +109,7 @@ static void asic_ssp_attach(STM32F405State *s,Error **errp)
 
     qdev_connect_gpio_out(DEVICE(&s->gpio[1]), 10,  // PB10
                         qdev_get_gpio_in(s->mux, 2));
+
 
 #if 0
 
@@ -144,6 +147,9 @@ static void asic_ssp_attach(STM32F405State *s,Error **errp)
     //                    qdev_get_gpio_in(sms->mux, 2));
     // "cs"
 }
+
+#endif
+
 
 #if 0
   { 6, 7, 8, 9, 10, 23, 23, 23, 23, 23, 40,
@@ -392,7 +398,6 @@ static void stm32f405_soc_initfn(Object *obj)
         //    object_initialize_child(OBJECT(bus), "nnasic", &s->asic[i], TYPE_NN1002);
         //}
     }
-    void *busm;
     //object_initialize_child(obj, "mux", s->mux, TYPE_ASIC_SSP);
 
     void *spibus;
@@ -401,7 +406,8 @@ static void stm32f405_soc_initfn(Object *obj)
 
     s->mux = ssi_create_peripheral(spibus,
                                      TYPE_ASIC_SSP);
-
+#ifdef USE_ASIC
+    void *busm;
 
     busm = qdev_get_child_bus(s->mux, "ssi0");
     object_initialize_child(OBJECT(busm), "nnasic", &s->asic[0], TYPE_NN1002);
@@ -409,6 +415,8 @@ static void stm32f405_soc_initfn(Object *obj)
     object_initialize_child(OBJECT(busm), "nnasic", &s->asic[1], TYPE_NN1002);
     busm = qdev_get_child_bus(s->mux, "ssi2");     
     object_initialize_child(OBJECT(busm), "nnasic", &s->asic[2], TYPE_NN1002);
+
+#endif
 
     #define NAME_SIZE 32
     char name[NAME_SIZE];
@@ -745,6 +753,7 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
 
     }
 
+#ifdef USE_ASIC
 
     s->asic[0].asic_num=1;
     s->asic[1].asic_num=2;
@@ -770,6 +779,8 @@ static void stm32f405_soc_realize(DeviceState *dev_soc, Error **errp)
     qdev_connect_gpio_out(DEVICE(&s->asic[0]), 0, qdev_get_gpio_in(dev, 9));
     qdev_connect_gpio_out(DEVICE(&s->asic[1]), 0, qdev_get_gpio_in(dev, 14));
     qdev_connect_gpio_out(DEVICE(&s->asic[2]), 0, qdev_get_gpio_in(dev, 15));
+
+#endif
 
 
     create_unimplemented_device("timer[7]",    0x40001400, 0x400);

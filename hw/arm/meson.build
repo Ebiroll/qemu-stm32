@@ -1,8 +1,5 @@
 arm_ss = ss.source_set()
 arm_ss.add(files('boot.c'), fdt)
-arm_ss.add(files('asic_sim/nn1002_sim.c'))
-arm_ss.add(files('asic_sim/nn1002.c'))
-arm_ss.add(files('asic_sim/light_sim.c'))
 arm_ss.add(files('stm32/stm32fxxx.c'))
 arm_ss.add(files('stm32/stm32fxxx_rcc.c'))
 arm_ss.add(files('stm32/stm32fxxx_fmc.c'))
