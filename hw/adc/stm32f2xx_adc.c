@@ -107,10 +107,6 @@ static void stm32f2xx_adc_reset(DeviceState *dev)
     s->adc_cr1 = 0x00000000;
     s->adc_cr2 = 0x00000000;
     s->adc_smpr1 = 0x00000000;
-    s->adc_smpr2 = 0x00000000;
-    s->adc_jofr[0] = 0x00000000;
-    s->adc_jofr[1] = 0x00000000;
-    s->adc_jofr[2] = 0x00000000;
     s->adc_jofr[3] = 0x00000000;
     s->adc_htr = 0x00000FFF;
     s->adc_ltr = 0x00000000;
@@ -375,7 +371,6 @@ static void stm32f2xx_adc_init(Object *obj)
     memory_region_init_io(&s->mmio, obj, &stm32f2xx_adc_ops, s,
                           TYPE_STM32F2XX_ADC, 0x100);
     sysbus_init_mmio(SYS_BUS_DEVICE(obj), &s->mmio);
-
 }
 
 static void stm32f2xx_adc_class_init(ObjectClass *klass, void *data)

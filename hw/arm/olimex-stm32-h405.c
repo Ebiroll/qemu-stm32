@@ -35,7 +35,7 @@
 /* olimex-stm32-h405 implementation is derived from netduinoplus2 */
 
 /* Main SYSCLK frequency in Hz (168MHz) */
-#define SYSCLK_FRQ 84000000ULL
+#define SYSCLK_FRQ 168000000ULL
 
 static void olimex_stm32_h405_init(MachineState *machine)
 {

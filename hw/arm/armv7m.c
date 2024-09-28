@@ -126,15 +126,9 @@ static const hwaddr bitband_input_addr[ARMV7M_NUM_BITBANDS] = {
     0x20000000, 0x40000000
 };
 
-//static const hwaddr bitband_output_addr[ARMV7M_NUM_BITBANDS] = {
-//    0x22000000, 0x42000000  
-//    // OLAS ACHTUNG Fixme 0x50000000
-//};
-hwaddr bitband_output_addr[ARMV7M_NUM_BITBANDS] = {
-    0x22000000, 0x42000000  
-//    // OLAS ACHTUNG Fixme 0x50000000
+static const hwaddr bitband_output_addr[ARMV7M_NUM_BITBANDS] = {
+    0x22000000, 0x42000000
 };
-
 
 static MemTxResult v7m_sysreg_ns_write(void *opaque, hwaddr addr,
                                        uint64_t value, unsigned size,
