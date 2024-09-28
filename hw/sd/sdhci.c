@@ -231,6 +231,8 @@ static bool sdhci_update_irq(SDHCIState *s)
 static void sdhci_raise_insertion_irq(void *opaque)
 {
     SDHCIState *s = (SDHCIState *)opaque;
+    // OLAS random fix
+    s->norintsts |= SDHC_NIS_INSERT;
 
     if (s->norintsts & SDHC_NIS_REMOVE) {
         timer_mod(s->insert_timer,
@@ -247,6 +249,8 @@ static void sdhci_raise_insertion_irq(void *opaque)
 static void sdhci_set_inserted(DeviceState *dev, bool level)
 {
     SDHCIState *s = (SDHCIState *)dev;
+    // olas random fix!
+    level=true;
 
     trace_sdhci_set_inserted(level ? "insert" : "eject");
     if ((s->norintsts & SDHC_NIS_REMOVE) && level) {

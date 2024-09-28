@@ -341,12 +341,13 @@ void bcm_soc_peripherals_common_realize(DeviceState *dev, Error **errp)
 
     memory_region_add_subregion(&s->peri_mr, UART4_OFFSET,
                 sysbus_mmio_get_region(SYS_BUS_DEVICE(&s->uart4), 0));
+
+    // OLAS UART 4 IRQ are probably inncorect
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->uart4), 0,
         qdev_get_gpio_in_named(DEVICE(&s->ic), BCM2835_IC_GPU_IRQ,
                                INTERRUPT_UART0));
 
-    // OLAS
-
+   
 
     /* AUX / UART1 */
     qdev_prop_set_chr(DEVICE(&s->aux), "chardev", serial_hd(1));

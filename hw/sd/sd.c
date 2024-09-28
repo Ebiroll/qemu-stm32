@@ -2073,7 +2073,6 @@ static sd_rsp_type_t sd_normal_command(SDState *sd, SDRequest req)
     //uint32_t rca = 0x0000;
     uint64_t addr = (sd->ocr & (1 << 30)) ? (uint64_t) req.arg << 9 : req.arg;
 
-    //uint64_t addr;
 
     sd->last_cmd_name = sd_cmd_name(sd, req.cmd);
     /* CMD55 precedes an ACMD, so we are not interested in tracing it.

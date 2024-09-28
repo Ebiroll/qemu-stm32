@@ -21,6 +21,7 @@ extern NICInfo nd_table[MAX_NICS];
 
 // From 4b hardware
 #define BCM2838_SDHC_CAPAREG 0x0000A52545EE6432
+#define BCM2838_SDHC_MAXCURR 1
 
 #define CLOCK_ISP_OFFSET        0xc11000
 #define CLOCK_ISP_SIZE          0x100
@@ -44,7 +45,8 @@ static void bcm2838_peripherals_init(Object *obj)
     object_initialize_child(obj, "rng200", &s->rng200, TYPE_BCM2838_RNG200);
 
     /* Thermal */
-    object_initialize_child(obj, "thermal", &s->thermal, TYPE_BCM2838_THERMAL);
+    // Already part of base
+    //object_initialize_child(obj, "thermal", &s->thermal, TYPE_BCM2838_THERMAL);
 
     /* PCIe Host Bridge */
     object_initialize_child(obj, "pcie-host", &s->pcie_host,
@@ -63,7 +65,8 @@ static void bcm2838_peripherals_init(Object *obj)
     object_initialize_child(obj, "emmc2", &s->emmc2, TYPE_SYSBUS_SDHCI);
 
     /* GPIO */
-    object_initialize_child(obj, "gpio", &s->gpio, TYPE_BCM2838_GPIO);
+    // Already part of base, but we add it again
+    object_initialize_child(obj, "2838-gpio", &s->gpio, TYPE_BCM2838_GPIO);
 
     object_property_add_const_link(OBJECT(&s->gpio), "sdbus-sdhci",
                                    OBJECT(&s_base->sdhci.sdbus));
@@ -94,7 +97,7 @@ static void bcm2838_peripherals_realize(DeviceState *dev, Error **errp)
     MemoryRegion *regs_mr;
     MemoryRegion *mmio_mr;
     MemoryRegion *rng200_mr;
-    MemoryRegion *thermal_mr;
+    //MemoryRegion *thermal_mr;
     qemu_irq rng_200_irq;
 
     int n;
@@ -122,17 +125,22 @@ static void bcm2838_peripherals_realize(DeviceState *dev, Error **errp)
 
 
     /* THERMAL */
-    if (!sysbus_realize(SYS_BUS_DEVICE(&s->thermal), errp)) {
-        return;
-    }
-    thermal_mr = sysbus_mmio_get_region(SYS_BUS_DEVICE(&s->thermal), 0);
-    memory_region_add_subregion( &s->peri_low_mr, 0x15D2000, thermal_mr);
+    //if (!sysbus_realize(SYS_BUS_DEVICE(&s->thermal), errp)) {
+    //    return;
+    //}
+    //thermal_mr = sysbus_mmio_get_region(SYS_BUS_DEVICE(&s->thermal), 0);
+    //memory_region_add_subregion( &s->peri_low_mr, 0x15D2000, thermal_mr);
 
     /* Extended Mass Media Controller 2 */
     object_property_set_uint(OBJECT(&s->emmc2), "sd-spec-version", 3,
                              &error_abort);
     object_property_set_uint(OBJECT(&s->emmc2), "capareg",
                              BCM2838_SDHC_CAPAREG, &error_abort);
+
+   object_property_set_uint(OBJECT(&s->emmc2), "maxcurr",
+                             BCM2838_SDHC_MAXCURR, &error_abort);
+ 
+
     object_property_set_bool(OBJECT(&s->emmc2), "pending-insert-quirk", true,
                              &error_abort);
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->emmc2), errp)) {
@@ -261,7 +269,7 @@ static void bcm2838_peripherals_realize(DeviceState *dev, Error **errp)
         &s_base->peri_mr, GPIO_OFFSET,
         sysbus_mmio_get_region(SYS_BUS_DEVICE(&s->gpio), 0));
 
-    object_property_add_alias(OBJECT(s), "sd-bus", OBJECT(&s->gpio), "sd-bus");
+    // object_property_add_alias(OBJECT(s), "sd-bus", OBJECT(&s->gpio), "sd-bus");
 
     /* BCM2838 RPiVid ASB must be mapped to prevent kernel crash */
     create_unimp(s_base, &s->asb, "bcm2838-asb", RPI4B_ASB_OFFSET, 0x24);
