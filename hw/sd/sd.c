@@ -58,7 +58,7 @@ static inline void st24_be_p(void *ptr, uint32_t v)
     st24_he_p(ptr, be_bswap24(v));
 }
 
-#define DEBUG_SD 1
+// #define DEBUG_SD 1
 
 #define SDSC_MAX_CAPACITY   (2 * GiB)
 
@@ -1423,12 +1423,38 @@ static sd_rsp_type_t sd_cmd_GO_IDLE_STATE(SDState *sd, SDRequest req)
 }
 
 /* CMD1 */
+static sd_rsp_type_t sd_cmd_SEND_OP_COND_MMC(SDState *sd, SDRequest req)
+{
+     printf("*********** CMD1 called with arg: 0x%08x\n", req.arg);
+    // CMD1 is used for MMC initialization
+    // Only respond if the card is in idle or ready state
+    if (sd->state == sd_idle_state || sd->state == sd_ready_state) {
+        // Update OCR with the requested voltage range
+        uint32_t requested_ocr = req.arg & 0x7FFFFFFF;
+
+        // For simplicity, assume the card supports the requested voltage
+        sd->ocr = 0x80000000 | requested_ocr; // Set busy bit
+
+        // Prepare response
+        // sd->rsp[0] = sd->ocr;
+
+        // Transition to the ready state
+        sd->state = sd_ready_state;
+
+        return sd_r3; // CMD1 uses R3 response type
+    } else {
+        // CMD1 is illegal in other states
+        return sd_illegal; // Indicate illegal command
+    }
+}
+
 static sd_rsp_type_t spi_cmd_SEND_OP_COND(SDState *sd, SDRequest req)
 {
     sd->state = sd_transfer_state;
 
     return sd_r1;
 }
+
 
 /* CMD2 */
 static sd_rsp_type_t sd_cmd_ALL_SEND_CID(SDState *sd, SDRequest req)
@@ -2370,7 +2396,7 @@ static sd_rsp_type_t sd_app_command(SDState *sd,
                                     SDRequest req)
 {
     // Saved for reference
-    assert (false);
+    //assert (false);
     sd->last_cmd_name = sd_acmd_name(sd, req.cmd);
 
     //trace_sdcard_app_command(sd_proto(sd)->name, sd_acmd_name(req.cmd),
@@ -2950,7 +2976,7 @@ static const SDProto sd_proto_spi = {
     .name = "SPI",
     .cmd = {
         [0]  = {0,  sd_spi, "GO_IDLE_STATE", sd_cmd_GO_IDLE_STATE},
-        [1]  = {0,  sd_spi, "SEND_OP_COND", spi_cmd_SEND_OP_COND},
+        [1]  = {0,  sd_spi, "SEND_OP_COND", sd_cmd_SEND_OP_COND_MMC},
         [5]  = {9,  sd_spi, "IO_SEND_OP_COND", sd_cmd_optional},
         [6]  = {10, sd_spi, "SWITCH_FUNCTION", sd_cmd_SWITCH_FUNCTION},
         [8]  = {0,  sd_spi, "SEND_IF_COND", sd_cmd_SEND_IF_COND},
@@ -2996,6 +3022,7 @@ static const SDProto sd_proto_sd = {
     .name = "SD",
     .cmd = {
         [0]  = {0,  sd_bc,   "GO_IDLE_STATE", sd_cmd_GO_IDLE_STATE},
+        [1]  = {0,  sd_bc,   "SEND_OP_COND", sd_cmd_SEND_OP_COND_MMC},
         [2]  = {0,  sd_bcr,  "ALL_SEND_CID", sd_cmd_ALL_SEND_CID},
         [3]  = {0,  sd_bcr,  "SEND_RELATIVE_ADDR", sd_cmd_SEND_RELATIVE_ADDR},
         [4]  = {0,  sd_bc,   "SEND_DSR", sd_cmd_unimplemented},
@@ -3044,6 +3071,7 @@ static const SDProto sd_proto_sd = {
         [59] = {11, sd_adtc, "WRITE_EXTR_MULTI", sd_cmd_optional},
     },
     .acmd = {
+        [1] =  {8,  sd_bc,  "SEND_OP_COND", sd_cmd_SEND_OP_COND_MMC},
         [6]  = {8,  sd_ac,   "SET_BUS_WIDTH", sd_acmd_SET_BUS_WIDTH},
         [13] = {8,  sd_adtc, "SD_STATUS", sd_acmd_SD_STATUS},
         [22] = {8,  sd_adtc, "SEND_NUM_WR_BLOCKS", sd_acmd_SEND_NUM_WR_BLOCKS},
@@ -3059,7 +3087,7 @@ static const SDProto sd_proto_emmc = {
     .name = "eMMC",
     .cmd = {
         [0]  = {0,  sd_bc,   "GO_IDLE_STATE", sd_cmd_GO_IDLE_STATE},
-        [1]  = {0,  sd_bcr,  "SEND_OP_COND", sd_cmd_SEND_OP_COND},
+        [1]  = {0,  sd_bc,   "SEND_OP_COND", sd_cmd_SEND_OP_COND_MMC},
         [2]  = {0,  sd_bcr,  "ALL_SEND_CID", sd_cmd_ALL_SEND_CID},
         [3]  = {0,  sd_ac,   "SET_RELATIVE_ADDR", emmc_cmd_SET_RELATIVE_ADDR},
         [4]  = {0,  sd_bc,   "SEND_DSR", sd_cmd_unimplemented},

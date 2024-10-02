@@ -20,6 +20,9 @@
 #include "migration/vmstate.h"
 #include "trace.h"
 #include "qom/object.h"
+#include "hw/qdev-properties.h"
+#include "qapi/error.h"
+#include "sysemu/block-backend.h"
 
 #define TYPE_BCM2835_SDHOST_BUS "bcm2835-sdhost-bus"
 /* This is reusing the SDBus typedef from SD_BUS */
@@ -109,6 +112,17 @@ static void bcm2835_sdhost_update_irq(BCM2835SDHostState *s)
     qemu_set_irq(s->irq, !!irq);
 }
 
+static SDState *get_card(SDBus *sdbus)
+{
+    /* We only ever have one child on the bus so just return it */
+    BusChild *kid = QTAILQ_FIRST(&sdbus->qbus.children);
+
+    if (!kid) {
+        return NULL;
+    }
+    return SD_CARD(kid->child);
+}
+
 static void bcm2835_sdhost_send_command(BCM2835SDHostState *s)
 {
     SDRequest request;
@@ -117,6 +131,24 @@ static void bcm2835_sdhost_send_command(BCM2835SDHostState *s)
 
     request.cmd = s->cmd & SDCMD_CMD_MASK;
     request.arg = s->cmdarg;
+    SDState *card = get_card(&s->sdbus);
+    if (!card) {
+        BlockBackend *blk;
+        Error *err = NULL;
+        blk = blk_by_name("sdcard"); // Use the ID specified in the QEMU command line
+        if (!blk) {
+            fprintf(stderr, "No block backend named 'sdcard' found\n");
+            return;
+        }
+        DeviceState *sdcard_dev = qdev_new(TYPE_SD_CARD);
+        qdev_prop_set_drive(sdcard_dev, "drive", blk);
+        qdev_realize_and_unref(sdcard_dev, BUS(&s->sdbus), &err);
+        if (err) {
+            fprintf(stderr, "Failed to attach SD card: %s\n", error_get_pretty(err));
+            error_free(err);
+            return;
+        }    
+    }
 
     rlen = sdbus_do_command(&s->sdbus, &request, rsp);
     if (rlen < 0) {
@@ -402,14 +434,35 @@ static const VMStateDescription vmstate_bcm2835_sdhost = {
 static void bcm2835_sdhost_init(Object *obj)
 {
     BCM2835SDHostState *s = BCM2835_SDHOST(obj);
+    BlockBackend *blk;
+    DeviceState *card;
+    Error *local_err = NULL;
+
 
     qbus_init(&s->sdbus, sizeof(s->sdbus),
               TYPE_BCM2835_SDHOST_BUS, DEVICE(s), "sd-bus");
+
+    //object_property_add_alias(OBJECT(s), "sd-bus", OBJECT(&s->sdbus), "sd-bus");
+
 
     memory_region_init_io(&s->iomem, obj, &bcm2835_sdhost_ops, s,
                           TYPE_BCM2835_SDHOST, 0x1000);
     sysbus_init_mmio(SYS_BUS_DEVICE(s), &s->iomem);
     sysbus_init_irq(SYS_BUS_DEVICE(s), &s->irq);
+
+    blk = blk_by_name("sdcard");
+    if (!blk) {
+        error_report("SD card image 'sdcard' not found");
+        // exit(1);
+    } else {
+        card = qdev_new(TYPE_SD_CARD);
+        qdev_prop_set_drive(card, "drive", blk);
+        qdev_realize_and_unref(card, BUS(&s->sdbus), &local_err);
+        if (local_err) {
+            error_report("Failed to attach SD card: %s", error_get_pretty(local_err));
+            exit(1);
+        }
+    }
 }
 
 static void bcm2835_sdhost_reset(DeviceState *dev)

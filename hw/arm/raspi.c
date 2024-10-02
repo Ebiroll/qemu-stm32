@@ -251,10 +251,10 @@ void raspi_base_machine_init(MachineState *machine,
     uint64_t ram_size = board_ram_size(board_rev);
     uint32_t vcram_base, vcram_size;
     size_t boot_ram_size;
-    DriveInfo *di;
-    BlockBackend *blk;
-    BusState *bus;
-    DeviceState *carddev;
+    //DriveInfo *di;
+    //BlockBackend *blk;
+    // BusState *bus;
+    //DeviceState *carddev;
 
     if (machine->ram_size != ram_size) {
         char *size_str = size_to_str(ram_size);
@@ -275,17 +275,11 @@ void raspi_base_machine_init(MachineState *machine,
                             machine->kernel_cmdline, &error_abort);
     qdev_realize(DEVICE(soc), NULL, &error_fatal);
 
-    /* Create and plug in the SD cards */
-    di = drive_get(IF_SD, 0, 0);
-    blk = di ? blk_by_legacy_dinfo(di) : NULL;
-    bus = qdev_get_child_bus(DEVICE(soc), "sd-bus");
-    if (bus == NULL) {
-        error_report("No SD bus found in SOC object");
-        exit(1);
-    }
-    carddev = qdev_new(TYPE_SD_CARD);
-    qdev_prop_set_drive_err(carddev, "drive", blk, &error_fatal);
-    qdev_realize_and_unref(carddev, bus, &error_fatal);
+
+
+    //carddev = qdev_new(TYPE_SD_CARD);
+    //qdev_prop_set_drive_err(carddev, "drive", blk, &error_fatal);
+    //qdev_realize_and_unref(carddev, bus, &error_fatal);
 
     vcram_size = object_property_get_uint(OBJECT(soc), "vcram-size",
                                           &error_abort);

@@ -16,7 +16,7 @@
 #define TYPE_BCM2835_AUX "bcm2835-aux"
 OBJECT_DECLARE_SIMPLE_TYPE(BCM2835AuxState, BCM2835_AUX)
 
-#define BCM2835_AUX_RX_FIFO_LEN 128
+#define BCM2835_AUX_RX_FIFO_LEN 1024*8
 
 struct BCM2835AuxState {
     /*< private >*/
@@ -32,7 +32,7 @@ struct BCM2835AuxState {
 
 
     uint8_t read_fifo[BCM2835_AUX_RX_FIFO_LEN];
-    uint8_t read_pos, read_count;
+    uint16_t read_pos, read_count;
     uint8_t ier, iir;
 };
 

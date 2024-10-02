@@ -21,7 +21,7 @@ extern NICInfo nd_table[MAX_NICS];
 
 // From 4b hardware
 #define BCM2838_SDHC_CAPAREG 0x0000A52545EE6432
-#define BCM2838_SDHC_MAXCURR 1
+#define BCM2838_SDHC_MAXCURR 0x5
 
 #define CLOCK_ISP_OFFSET        0xc11000
 #define CLOCK_ISP_SIZE          0x100
@@ -89,6 +89,23 @@ static void bcm2838_peripherals_init(Object *obj)
                             &error_abort);
 }
 
+# if 0
+static void attach_sd_drive(SDHCIState *sdhci, int unit)
+{
+        DriveInfo *di = drive_get(IF_SD, 0, unit);
+        BlockBackend *blk = di ? blk_by_legacy_dinfo(di) : NULL;
+
+        BusState *bus = qdev_get_child_bus(DEVICE(sdhci), "sd-bus");
+        if (bus == NULL) {
+            error_report("No SD bus found in SOC object");
+            exit(1);
+        }
+
+        DeviceState *carddev = qdev_new(TYPE_SD_CARD);
+        qdev_prop_set_drive_err(carddev, "drive", blk, &error_fatal);
+        qdev_realize_and_unref(carddev, bus, &error_fatal);
+}
+#endif
 static void bcm2838_peripherals_realize(DeviceState *dev, Error **errp)
 {
     MemoryRegion *mphi_mr;
@@ -143,6 +160,10 @@ static void bcm2838_peripherals_realize(DeviceState *dev, Error **errp)
 
     object_property_set_bool(OBJECT(&s->emmc2), "pending-insert-quirk", true,
                              &error_abort);
+
+    object_property_add_alias(OBJECT(s), "sd-bus", OBJECT(&s->emmc2), "sd-bus");
+
+                             
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->emmc2), errp)) {
         return;
     }

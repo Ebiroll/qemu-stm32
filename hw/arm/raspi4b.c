@@ -98,11 +98,23 @@ static void raspi4b_machine_init(MachineState *machine)
     RaspiBaseMachineClass *mc = RASPI_BASE_MACHINE_GET_CLASS(machine);
     BCM2838State *soc = &s->soc;
 
+
     s_base->binfo.modify_dtb = raspi4_modify_dtb;
     s_base->binfo.board_id = mc->board_rev;
 
     object_initialize_child(OBJECT(machine), "soc", soc,
                             board_soc_type(mc->board_rev));
+
+    /* Retrieve SD bus */
+    //di = drive_get(IF_SD, 0, 0);
+    //blk = di ? blk_by_legacy_dinfo(di) : NULL;
+    //bus = qdev_get_child_bus(DEVICE(soc), "sd-bus");
+
+    /* Plug in SD card */
+    //carddev = qdev_new(TYPE_SD_CARD);
+    //qdev_prop_set_drive_err(carddev, "drive", blk, &error_fatal);
+    //qdev_realize_and_unref(carddev, bus, &error_fatal);
+
 
     raspi_base_machine_init(machine, &soc->parent_obj);
 }

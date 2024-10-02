@@ -278,8 +278,8 @@ static const VMStateDescription vmstate_bcm2835_aux = {
     .fields = (const VMStateField[]) {
         VMSTATE_UINT8_ARRAY(read_fifo, BCM2835AuxState,
                             BCM2835_AUX_RX_FIFO_LEN),
-        VMSTATE_UINT8(read_pos, BCM2835AuxState),
-        VMSTATE_UINT8(read_count, BCM2835AuxState),
+        VMSTATE_UINT16(read_pos, BCM2835AuxState),
+        VMSTATE_UINT16(read_count, BCM2835AuxState),
         VMSTATE_UINT8(ier, BCM2835AuxState),
         VMSTATE_UINT8(iir, BCM2835AuxState),
         VMSTATE_END_OF_LIST()
