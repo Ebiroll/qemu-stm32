@@ -56,10 +56,19 @@ static void bcm2835_property_mbox_push(BCM2835PropertyState *s, uint32_t value)
         /* @(value + 8) : Request/response indicator */
         resplen = 0;
         switch (tag) {
+            case RPI_FWREQ_GET_VOLTAGE:
+                /* On actual hardware, this would read the voltage
+                 0 -2147483648 or 0,0x80000000) 
+                 */
+                resplen = 8;
+                stl_le_phys(&s->dma_as, value + 12, 0);
+                stl_le_phys(&s->dma_as, value + 16,0x80000000);
+                break;
         case RPI_FWREQ_PROPERTY_END:
             break;
         case RPI_FWREQ_GET_FIRMWARE_REVISION:
-            stl_le_phys(&s->dma_as, value + 12, 346337);
+            //stl_le_phys(&s->dma_as, value + 12, 346337);
+            stl_le_phys(&s->dma_as, value + 12, 652eaab2);
             resplen = 4;
             break;
         case RPI_FWREQ_GET_BOARD_MODEL:
@@ -78,12 +87,17 @@ static void bcm2835_property_mbox_push(BCM2835PropertyState *s, uint32_t value)
                              MEMTXATTRS_UNSPECIFIED);
             break;
         case RPI_FWREQ_GET_BOARD_SERIAL:
-            qemu_log_mask(LOG_UNIMP,
-                          "bcm2835_property: 0x%08x get board serial NYI\n",
-                          tag);
+            //qemu_log_mask(LOG_UNIMP,
+            //              "bcm2835_property: 0x%08x get board serial NYI\n",
+            //              tag);
+            stl_le_phys(&s->dma_as, value + 12, 0x70cccdf3);
+            stl_le_phys(&s->dma_as, value + 16,0x10000000);                           
             resplen = 8;
             break;
         case RPI_FWREQ_GET_ARM_MEMORY:
+
+            // Mismatch simulated: 1006632960
+            // HW 1046478848 
             /* base */
             stl_le_phys(&s->dma_as, value + 12, 0);
             /* size */
