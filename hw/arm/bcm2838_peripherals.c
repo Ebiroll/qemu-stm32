@@ -34,7 +34,7 @@ static void bcm2838_peripherals_init(Object *obj)
 {
     BCM2838PeripheralState *s = BCM2838_PERIPHERALS(obj);
     BCM2838PeripheralClass *bc = BCM2838_PERIPHERALS_GET_CLASS(obj);
-    BCMSocPeripheralBaseState *s_base = BCM_SOC_PERIPHERALS_BASE(obj);
+    //BCMSocPeripheralBaseState *s_base = BCM_SOC_PERIPHERALS_BASE(obj);
 
     /* Lower memory region for peripheral devices (exported to the Soc) */
     memory_region_init(&s->peri_low_mr, obj, "bcm2838-peripherals",
@@ -69,9 +69,9 @@ static void bcm2838_peripherals_init(Object *obj)
     object_initialize_child(obj, "2838-gpio", &s->gpio, TYPE_BCM2838_GPIO);
 
     object_property_add_const_link(OBJECT(&s->gpio), "sdbus-sdhci",
-                                   OBJECT(&s_base->sdhci.sdbus));
-    object_property_add_const_link(OBJECT(&s->gpio), "sdbus-sdhost",
-                                   OBJECT(&s_base->sdhost.sdbus));
+                                   OBJECT(&s->emmc2.sdbus));
+    //object_property_add_const_link(OBJECT(&s->gpio), "sdbus-sdhost",
+    //                               OBJECT(&s_base->sdhost.sdbus));
 
     object_initialize_child(obj, "mmc_irq_orgate", &s->mmc_irq_orgate,
                             TYPE_OR_IRQ);
@@ -161,7 +161,7 @@ static void bcm2838_peripherals_realize(DeviceState *dev, Error **errp)
     object_property_set_bool(OBJECT(&s->emmc2), "pending-insert-quirk", true,
                              &error_abort);
 
-    object_property_add_alias(OBJECT(s), "sd-bus", OBJECT(&s->emmc2), "sd-bus");
+    //object_property_add_alias(OBJECT(s), "sd-bus", OBJECT(&s->emmc2), "sd-bus");
 
                              
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->emmc2), errp)) {
@@ -181,7 +181,7 @@ static void bcm2838_peripherals_realize(DeviceState *dev, Error **errp)
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->emmc2), 0,
                         qdev_get_gpio_in(mmc_irq_orgate, 0));
 
-    sysbus_connect_irq(SYS_BUS_DEVICE(&s_base->sdhci), 0,
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->emmc2), 0,
                         qdev_get_gpio_in(mmc_irq_orgate, 1));
 
    /* Connect EMMC and EMMC2 to the interrupt controller */
@@ -290,7 +290,7 @@ static void bcm2838_peripherals_realize(DeviceState *dev, Error **errp)
         &s_base->peri_mr, GPIO_OFFSET,
         sysbus_mmio_get_region(SYS_BUS_DEVICE(&s->gpio), 0));
 
-    // object_property_add_alias(OBJECT(s), "sd-bus", OBJECT(&s->gpio), "sd-bus");
+    object_property_add_alias(OBJECT(s), "sd-bus", OBJECT(&s->gpio), "sd-bus");
 
     /* BCM2838 RPiVid ASB must be mapped to prevent kernel crash */
     create_unimp(s_base, &s->asb, "bcm2838-asb", RPI4B_ASB_OFFSET, 0x24);

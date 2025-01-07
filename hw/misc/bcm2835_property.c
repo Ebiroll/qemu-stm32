@@ -68,7 +68,7 @@ static void bcm2835_property_mbox_push(BCM2835PropertyState *s, uint32_t value)
             break;
         case RPI_FWREQ_GET_FIRMWARE_REVISION:
             //stl_le_phys(&s->dma_as, value + 12, 346337);
-            stl_le_phys(&s->dma_as, value + 12, 652eaab2);
+            stl_le_phys(&s->dma_as, value + 12, 0x652eaab2);
             resplen = 4;
             break;
         case RPI_FWREQ_GET_BOARD_MODEL:

@@ -40,6 +40,8 @@
 #include "qemu/module.h"
 #include "trace.h"
 #include "qom/object.h"
+#include "sysemu/block-backend.h"
+
 
 #define TYPE_SDHCI_BUS "sdhci-bus"
 /* This is reusing the SDBus typedef from SD_BUS */
@@ -77,6 +79,8 @@ static void sdhci_check_capareg(SDHCIState *s, Error **errp)
     uint64_t msk = s->capareg;
     uint32_t val;
     bool y;
+
+    trace_sdhci_capareg("-------------------------------------", s->sd_spec_version);
 
     switch (s->sd_spec_version) {
     case 4:
@@ -287,6 +291,18 @@ static void sdhci_set_readonly(DeviceState *dev, bool level)
     }
 }
 
+static SDState *get_my_card(SDBus *sdbus)
+{
+    /* We only ever have one child on the bus so just return it */
+    BusChild *kid = QTAILQ_FIRST(&sdbus->qbus.children);
+
+    if (!kid) {
+        return NULL;
+    }
+    return SD_CARD(kid->child);
+}
+
+
 static void sdhci_reset(SDHCIState *s)
 {
     DeviceState *dev = DEVICE(s);
@@ -306,6 +322,27 @@ static void sdhci_reset(SDHCIState *s)
     s->data_count = 0;
     s->stopped_state = sdhc_not_stopped;
     s->pending_insert_state = false;
+    // OLAS olof, bus fix
+    SDState *card = get_my_card(&s->sdbus);
+    if (!card) {
+        BlockBackend *blk;
+        Error *err = NULL;
+        blk = blk_by_name("sdcard"); // Use the ID specified in the QEMU command line
+        if (!blk) {
+            fprintf(stderr, "No block backend named 'sdcard' found\n");
+            return;
+        }
+        DeviceState *sdcard_dev = qdev_new(TYPE_SD_CARD);
+        qdev_prop_set_drive(sdcard_dev, "drive", blk);
+        qdev_realize_and_unref(sdcard_dev, BUS(&s->sdbus), &err);
+        if (err) {
+            fprintf(stderr, "Failed to attach SD card: %s\n", error_get_pretty(err));
+            error_free(err);
+            return;
+        }    
+    }
+
+
 }
 
 static void sdhci_poweron_reset(DeviceState *dev)
@@ -326,6 +363,8 @@ static void sdhci_poweron_reset(DeviceState *dev)
 static void sdhci_data_transfer(void *opaque);
 
 #define BLOCK_SIZE_MASK (4 * KiB - 1)
+
+
 
 static void sdhci_send_command(SDHCIState *s)
 {
@@ -386,6 +425,7 @@ static void sdhci_send_command(SDHCIState *s)
 
 static void sdhci_end_transfer(SDHCIState *s)
 {
+    // printf("sdhci_end_transfer\n");
     /* Automatically send CMD12 to stop transfer if AutoCMD12 enabled */
     if ((s->trnmod & SDHC_TRNS_ACMD12) != 0) {
         SDRequest request;

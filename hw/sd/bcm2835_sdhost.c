@@ -111,7 +111,7 @@ static void bcm2835_sdhost_update_irq(BCM2835SDHostState *s)
     trace_bcm2835_sdhost_update_irq(irq);
     qemu_set_irq(s->irq, !!irq);
 }
-
+#if 0
 static SDState *get_card(SDBus *sdbus)
 {
     /* We only ever have one child on the bus so just return it */
@@ -122,15 +122,18 @@ static SDState *get_card(SDBus *sdbus)
     }
     return SD_CARD(kid->child);
 }
-
+#endif
 static void bcm2835_sdhost_send_command(BCM2835SDHostState *s)
 {
     SDRequest request;
     uint8_t rsp[16];
     int rlen;
 
+    printf("bcm2835_sdhost_send_command\n");
+
     request.cmd = s->cmd & SDCMD_CMD_MASK;
     request.arg = s->cmdarg;
+    #if 0
     SDState *card = get_card(&s->sdbus);
     if (!card) {
         BlockBackend *blk;
@@ -149,6 +152,7 @@ static void bcm2835_sdhost_send_command(BCM2835SDHostState *s)
             return;
         }    
     }
+    #endif
 
     rlen = sdbus_do_command(&s->sdbus, &request, rsp);
     if (rlen < 0) {
@@ -434,9 +438,9 @@ static const VMStateDescription vmstate_bcm2835_sdhost = {
 static void bcm2835_sdhost_init(Object *obj)
 {
     BCM2835SDHostState *s = BCM2835_SDHOST(obj);
-    BlockBackend *blk;
-    DeviceState *card;
-    Error *local_err = NULL;
+    //BlockBackend *blk;
+    // DeviceState *card;
+    //Error *local_err = NULL;
 
 
     qbus_init(&s->sdbus, sizeof(s->sdbus),
@@ -450,6 +454,7 @@ static void bcm2835_sdhost_init(Object *obj)
     sysbus_init_mmio(SYS_BUS_DEVICE(s), &s->iomem);
     sysbus_init_irq(SYS_BUS_DEVICE(s), &s->irq);
 
+#if 0
     blk = blk_by_name("sdcard");
     if (!blk) {
         error_report("SD card image 'sdcard' not found");
@@ -463,6 +468,7 @@ static void bcm2835_sdhost_init(Object *obj)
             exit(1);
         }
     }
+#endif
 }
 
 static void bcm2835_sdhost_reset(DeviceState *dev)

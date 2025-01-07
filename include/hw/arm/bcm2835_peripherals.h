@@ -68,7 +68,7 @@ struct BCMSocPeripheralBaseState {
     BCM2835PropertyState property;
     //BCM2835RngState rng;
     BCM2835MboxState mboxes;
-    SDHCIState sdhci;
+    //SDHCIState sdhci;
     BCM2835SDHostState sdhost;
     //BCM2835GpioState gpio;
     //Bcm2835ThermalState thermal;

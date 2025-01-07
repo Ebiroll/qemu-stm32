@@ -360,8 +360,8 @@ static void bcm2838_gpio_realize(DeviceState *dev, Error **errp)
     obj = object_property_get_link(OBJECT(dev), "sdbus-sdhci", &error_abort);
     s->sdbus_sdhci = SD_BUS(obj);
 
-    obj = object_property_get_link(OBJECT(dev), "sdbus-sdhost", &error_abort);
-    s->sdbus_sdhost = SD_BUS(obj);
+    //obj = object_property_get_link(OBJECT(dev), "sdbus-sdhost", &error_abort);
+    //s->sdbus_sdhost = SD_BUS(obj);
 }
 
 static void bcm2838_gpio_class_init(ObjectClass *klass, void *data)
