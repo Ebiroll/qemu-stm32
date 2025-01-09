@@ -57,7 +57,7 @@ static void bcm2835_peripherals_init(Object *obj)
     object_initialize_child(obj, "thermal", &s->thermal, TYPE_BCM2835_THERMAL);
 
     /* GPIO */
-    object_initialize_child(obj, "gpio", &s->gpio, TYPE_BCM2835_GPIO);
+    object_initialize_child(obj, "2835-gpio", &s->gpio, TYPE_BCM2835_GPIO);
 
     #if 1
 
@@ -181,12 +181,12 @@ static void raspi_peripherals_base_init(Object *obj)
     //object_initialize_child(obj, "thermal", &s->thermal, TYPE_BCM2835_THERMAL);
 
     /* GPIO */
-    //object_initialize_child(obj, "gpio", &s->gpio, TYPE_BCM2835_GPIO);
+    object_initialize_child(obj, "gpio", &s->gpio, TYPE_BCM2835_GPIO);
 
-    //object_property_add_const_link(OBJECT(&s->gpio), "sdbus-sdhci1",
-    //                               OBJECT(&s->sdhci1.sdbus));
-    //object_property_add_const_link(OBJECT(&s->gpio), "sdbus-sdhost1",
-    //                               OBJECT(&s->sdhost.sdbus));
+     object_property_add_const_link(OBJECT(&s->gpio), "sdbus-sdhci",
+                                   OBJECT(&s->sdhci1.sdbus));
+     object_property_add_const_link(OBJECT(&s->gpio), "sdbus-sdhost",
+                                   OBJECT(&s->sdhost.sdbus));
 
     /* Mphi */
     object_initialize_child(obj, "mphi", &s->mphi, TYPE_BCM2835_MPHI);
@@ -556,6 +556,8 @@ void bcm_soc_peripherals_common_realize(DeviceState *dev, Error **errp)
     }
     memory_region_add_subregion(&s->peri_mr, THERMAL_OFFSET,
                 sysbus_mmio_get_region(SYS_BUS_DEVICE(&s->thermal), 0));
+#endif
+
 
     /* GPIO */
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->gpio), errp)) {
@@ -565,8 +567,10 @@ void bcm_soc_peripherals_common_realize(DeviceState *dev, Error **errp)
     memory_region_add_subregion(&s->peri_mr, GPIO_OFFSET,
                 sysbus_mmio_get_region(SYS_BUS_DEVICE(&s->gpio), 0));
 
-    object_property_add_alias(OBJECT(s), "sd-bus", OBJECT(&s->gpio), "sd-bus");
-#endif
+    // object_property_add_alias(OBJECT(s), "sd-bus", OBJECT(&s->gpio), "sd-bus");
+
+
+
     /* Mphi */
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->mphi), errp)) {
         return;

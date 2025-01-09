@@ -68,6 +68,8 @@ static void bcm2838_peripherals_init(Object *obj)
     object_initialize_child(obj, "emmc2", &s->emmc2, TYPE_SYSBUS_SDHCI);
 
     sdhci_attach_card(&s->emmc2);
+    // mmc1 for sdcard
+    //sdhci_attach_card(&s_base->sdhci1);
 
 
     /* GPIO */
@@ -81,7 +83,7 @@ static void bcm2838_peripherals_init(Object *obj)
 
     object_initialize_child(obj, "mmc_irq_orgate", &s->mmc_irq_orgate,
                             TYPE_OR_IRQ);
-    object_property_set_int(OBJECT(&s->mmc_irq_orgate), "num-lines", 2,
+    object_property_set_int(OBJECT(&s->mmc_irq_orgate), "num-lines", 3,
                             &error_abort);
 
     object_initialize_child(obj, "dma_7_8_irq_orgate", &s->dma_7_8_irq_orgate,
@@ -184,11 +186,16 @@ static void bcm2838_peripherals_realize(DeviceState *dev, Error **errp)
     }
 
     DeviceState *mmc_irq_orgate = DEVICE(&s->mmc_irq_orgate);
+
     sysbus_connect_irq(SYS_BUS_DEVICE(&s->emmc2), 0,
                         qdev_get_gpio_in(mmc_irq_orgate, 0));
 
-    sysbus_connect_irq(SYS_BUS_DEVICE(&s->emmc2), 0,
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s_base->sdhost), 0,
                         qdev_get_gpio_in(mmc_irq_orgate, 1));
+
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s_base->sdhci1), 0,
+                        qdev_get_gpio_in(mmc_irq_orgate, 2));
+                        
 
    /* Connect EMMC and EMMC2 to the interrupt controller */
     qdev_connect_gpio_out(mmc_irq_orgate, 0,

@@ -70,7 +70,7 @@ struct BCMSocPeripheralBaseState {
     BCM2835MboxState mboxes;
     SDHCIState sdhci1;
     BCM2835SDHostState sdhost;
-    //BCM2835GpioState gpio;
+    BCM2835GpioState gpio;
     //Bcm2835ThermalState thermal;
     UnimplementedDeviceState i2s;
     BCM2835SPIState spi[1];

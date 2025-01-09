@@ -446,7 +446,7 @@ static void bcm2835_sdhost_init(Object *obj)
     qbus_init(&s->sdbus, sizeof(s->sdbus),
               TYPE_BCM2835_SDHOST_BUS, DEVICE(s), "sd-bus");
 
-    //object_property_add_alias(OBJECT(s), "sd-bus", OBJECT(&s->sdbus), "sd-bus");
+    // object_property_add_alias(OBJECT(s), "sd-bus", OBJECT(&s->sdbus), "sd-bus");
 
 
     memory_region_init_io(&s->iomem, obj, &bcm2835_sdhost_ops, s,

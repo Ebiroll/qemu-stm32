@@ -99,6 +99,15 @@ static void gpfsel_set(BCM2838GpioState *s, uint8_t reg, uint32_t value)
         }
     }
 
+    // print the fsel values 48-53
+    #if 0
+    // Not sureif this controller selection is correct
+    for (i = 48; i < 54; i++) {
+        printf("fsel[%d] = %d\n", i, s->fsel[i]);
+    }
+    sdbus_reparent_card(s->sdbus_sdhost, s->sdbus_sdhci);
+    #endif
+
     /* SD controller selection (48-53) */
     if (s->sd_fsel != BCM2838_FSEL_GPIO_IN
         && (s->fsel[48] == BCM2838_FSEL_GPIO_IN)
@@ -248,7 +257,7 @@ static void bcm2838_gpio_write(void *opaque, hwaddr offset, uint64_t value,
     case GPFSEL3:
     case GPFSEL4:
     case GPFSEL5:
-        printf("gpfsel_set\n");
+        // printf("gpfsel_set\n");
         gpfsel_set(s, offset / BYTES_IN_WORD, value);
         break;
     case GPSET0:

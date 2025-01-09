@@ -90,10 +90,10 @@ DeviceState *pl011_create(hwaddr addr, qemu_irq irq, Chardev *chr)
 #define CR_UARTEN   (1 << 0)
 
 /* Integer Baud Rate Divider, UARTIBRD */
-#define IBRD_MASK 0x3f
+#define IBRD_MASK 0xffff
 
 /* Fractional Baud Rate Divider, UARTFBRD */
-#define FBRD_MASK 0xffff
+#define FBRD_MASK 0x3f
 
 static const unsigned char pl011_id_arm[8] =
   { 0x11, 0x10, 0x14, 0x00, 0x0d, 0xf0, 0x05, 0xb1 };
@@ -272,6 +272,8 @@ static uint64_t pl011_read(void *opaque, hwaddr offset,
 {
     PL011State *s = (PL011State *)opaque;
     uint64_t r;
+    offset &= 0xff;
+
 
     switch (offset >> 2) {
     case 0: /* UARTDR */
@@ -316,11 +318,11 @@ static uint64_t pl011_read(void *opaque, hwaddr offset,
     case 0x3f8 ... 0x400:
         r = s->id[(offset - 0xfe0) >> 2];
         break;
-            case 0x618 ... 0x638:
+    case 0x618 ... 0x638:
         break;
     default:
         qemu_log_mask(LOG_GUEST_ERROR,
-                      "pl011_read: Bad offset 0x%x\n", (int)offset);
+                      "pl011_read: Bad offset 0x%x\n", (int)offset >> 2);
         r = 0;
         break;
     }
@@ -415,6 +417,8 @@ static void pl011_write(void *opaque, hwaddr offset,
 {
     PL011State *s = (PL011State *)opaque;
     unsigned char ch;
+    // Mask the offset to 8 bits
+    offset &= 0xff;
 
     trace_pl011_write(offset, value, pl011_regname(offset));
 

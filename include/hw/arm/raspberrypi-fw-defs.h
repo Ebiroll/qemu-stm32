@@ -56,6 +56,7 @@ enum rpi_firmware_property_tag {
     RPI_FWREQ_GET_THROTTLED =                          0x00030046,
     RPI_FWREQ_GET_CLOCK_MEASURED =                     0x00030047,
     RPI_FWREQ_NOTIFY_REBOOT =                          0x00030048,
+    RPI_FWREQ_GET_PRIVATE_KEY =                        0x00030081,
     RPI_FWREQ_SET_CLOCK_STATE =                        0x00038001,
     RPI_FWREQ_SET_CLOCK_RATE =                         0x00038002,
     RPI_FWREQ_SET_VOLTAGE =                            0x00038003,
@@ -78,6 +79,7 @@ enum rpi_firmware_property_tag {
     RPI_FWREQ_GET_REBOOT_FLAGS =                       0x00030064,
     RPI_FWREQ_SET_REBOOT_FLAGS =                       0x00038064,
     RPI_FWREQ_NOTIFY_DISPLAY_DONE =                    0x00030066,
+    RPI_FWREQ_SET_PRIVATE_KEY =                        0x00038081,
 
     /* Dispmanx TAGS */
     RPI_FWREQ_FRAMEBUFFER_ALLOCATE =                   0x00040001,
