@@ -60,7 +60,6 @@ system_ss.add(when: 'CONFIG_ETSEC', if_true: files(
   'fsl_etsec/registers.c',
   'fsl_etsec/rings.c',
 ))
-
 system_ss.add(when: 'CONFIG_ROCKER', if_true: files(
   'rocker/rocker.c',
   'rocker/rocker_desc.c',
@@ -69,7 +68,6 @@ system_ss.add(when: 'CONFIG_ROCKER', if_true: files(
   'rocker/rocker_world.c',
 ), if_false: files('rocker/qmp-norocker.c'))
 system_ss.add(files('rocker/rocker-hmp-cmds.c'))
-
 system_ss.add(when: 'CONFIG_RASPI', if_true: files('bcm2838_genet.c'))
 
 subdir('can')
