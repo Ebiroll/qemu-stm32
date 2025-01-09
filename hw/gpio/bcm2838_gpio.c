@@ -109,6 +109,7 @@ static void gpfsel_set(BCM2838GpioState *s, uint8_t reg, uint32_t value)
         && (s->fsel[53] == BCM2838_FSEL_GPIO_IN)
        ) {
         /* SDHCI controller selected */
+        printf("SDHCI controller selected\n");
         sdbus_reparent_card(s->sdbus_sdhost, s->sdbus_sdhci);
         s->sd_fsel = BCM2838_FSEL_GPIO_IN;
     } else if (s->sd_fsel != BCM2838_FSEL_ALT0
@@ -120,6 +121,8 @@ static void gpfsel_set(BCM2838GpioState *s, uint8_t reg, uint32_t value)
                && (s->fsel[53] == BCM2838_FSEL_ALT0) /* SD_DATA3_R */
               ) {
         /* SDHost controller selected */
+        printf("SDHost controller selected\n");
+
         sdbus_reparent_card(s->sdbus_sdhci, s->sdbus_sdhost);
         s->sd_fsel = BCM2838_FSEL_ALT0;
     }
@@ -236,6 +239,8 @@ static void bcm2838_gpio_write(void *opaque, hwaddr offset, uint64_t value,
 {
     BCM2838GpioState *s = (BCM2838GpioState *)opaque;
 
+   
+
     switch (offset) {
     case GPFSEL0:
     case GPFSEL1:
@@ -243,6 +248,7 @@ static void bcm2838_gpio_write(void *opaque, hwaddr offset, uint64_t value,
     case GPFSEL3:
     case GPFSEL4:
     case GPFSEL5:
+        printf("gpfsel_set\n");
         gpfsel_set(s, offset / BYTES_IN_WORD, value);
         break;
     case GPSET0:
@@ -360,8 +366,8 @@ static void bcm2838_gpio_realize(DeviceState *dev, Error **errp)
     obj = object_property_get_link(OBJECT(dev), "sdbus-sdhci", &error_abort);
     s->sdbus_sdhci = SD_BUS(obj);
 
-    //obj = object_property_get_link(OBJECT(dev), "sdbus-sdhost", &error_abort);
-    //s->sdbus_sdhost = SD_BUS(obj);
+    obj = object_property_get_link(OBJECT(dev), "sdbus-sdhost", &error_abort);
+    s->sdbus_sdhost = SD_BUS(obj);
 }
 
 static void bcm2838_gpio_class_init(ObjectClass *klass, void *data)

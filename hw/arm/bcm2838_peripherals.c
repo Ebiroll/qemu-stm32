@@ -29,12 +29,15 @@ extern NICInfo nd_table[MAX_NICS];
 /* Lower peripheral base address on the VC (GPU) system bus */
 #define BCM2838_VC_PERI_LOW_BASE 0x7c000000
 
+extern   void sdhci_attach_card(SDHCIState *s);
+
+
 
 static void bcm2838_peripherals_init(Object *obj)
 {
     BCM2838PeripheralState *s = BCM2838_PERIPHERALS(obj);
     BCM2838PeripheralClass *bc = BCM2838_PERIPHERALS_GET_CLASS(obj);
-    //BCMSocPeripheralBaseState *s_base = BCM_SOC_PERIPHERALS_BASE(obj);
+    BCMSocPeripheralBaseState *s_base = BCM_SOC_PERIPHERALS_BASE(obj);
 
     /* Lower memory region for peripheral devices (exported to the Soc) */
     memory_region_init(&s->peri_low_mr, obj, "bcm2838-peripherals",
@@ -64,14 +67,17 @@ static void bcm2838_peripherals_init(Object *obj)
     /* Extended Mass Media Controller 2 */
     object_initialize_child(obj, "emmc2", &s->emmc2, TYPE_SYSBUS_SDHCI);
 
+    sdhci_attach_card(&s->emmc2);
+
+
     /* GPIO */
     // Already part of base, but we add it again
     object_initialize_child(obj, "2838-gpio", &s->gpio, TYPE_BCM2838_GPIO);
 
     object_property_add_const_link(OBJECT(&s->gpio), "sdbus-sdhci",
                                    OBJECT(&s->emmc2.sdbus));
-    //object_property_add_const_link(OBJECT(&s->gpio), "sdbus-sdhost",
-    //                               OBJECT(&s_base->sdhost.sdbus));
+    object_property_add_const_link(OBJECT(&s->gpio), "sdbus-sdhost",
+                                   OBJECT(&s_base->sdhost.sdbus));
 
     object_initialize_child(obj, "mmc_irq_orgate", &s->mmc_irq_orgate,
                             TYPE_OR_IRQ);

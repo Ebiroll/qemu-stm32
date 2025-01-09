@@ -96,8 +96,10 @@ int sdbus_do_command(SDBus *sdbus, SDRequest *req, uint8_t *response)
     trace_sdbus_command(sdbus_name(sdbus), req->cmd, req->arg);
     if (card) {
         SDCardClass *sc = SD_CARD_GET_CLASS(card);
-
+        // printf("CMD to card\n");
         return sc->do_command(card, req, response);
+    } else {
+        printf("No card attached to SD bus\n");
     }
 
     return 0;

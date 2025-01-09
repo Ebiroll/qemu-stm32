@@ -322,6 +322,15 @@ static void sdhci_reset(SDHCIState *s)
     s->data_count = 0;
     s->stopped_state = sdhc_not_stopped;
     s->pending_insert_state = false;
+
+
+}
+
+void sdhci_attach_card(SDHCIState *s);
+
+
+void sdhci_attach_card(SDHCIState *s) {
+
     // OLAS olof, bus fix
     SDState *card = get_my_card(&s->sdbus);
     if (!card) {
@@ -341,8 +350,6 @@ static void sdhci_reset(SDHCIState *s)
             return;
         }    
     }
-
-
 }
 
 static void sdhci_poweron_reset(DeviceState *dev)

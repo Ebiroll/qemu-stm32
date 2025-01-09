@@ -59,10 +59,10 @@ static void bcm2835_peripherals_init(Object *obj)
     /* GPIO */
     object_initialize_child(obj, "gpio", &s->gpio, TYPE_BCM2835_GPIO);
 
-    #if 0
+    #if 1
 
     object_property_add_const_link(OBJECT(&s->gpio), "sdbus-sdhci",
-                                   OBJECT(&s_base->sdhci.sdbus));
+                                   OBJECT(&s_base->sdhci1.sdbus));
     object_property_add_const_link(OBJECT(&s->gpio), "sdbus-sdhost",
                                    OBJECT(&s_base->sdhost.sdbus));
 
@@ -157,7 +157,7 @@ static void raspi_peripherals_base_init(Object *obj)
     //object_initialize_child(obj, "2835-rng", &s->rng, TYPE_BCM2835_RNG);
 
     /* Extended Mass Media Controller */
-    //object_initialize_child(obj, "sdhci", &s->sdhci, TYPE_SYSBUS_SDHCI);
+    object_initialize_child(obj, "sdhci", &s->sdhci1, TYPE_SYSBUS_SDHCI);
 
     /* SDHOST */
     object_initialize_child(obj, "sdhost", &s->sdhost, TYPE_BCM2835_SDHOST);
@@ -183,9 +183,9 @@ static void raspi_peripherals_base_init(Object *obj)
     /* GPIO */
     //object_initialize_child(obj, "gpio", &s->gpio, TYPE_BCM2835_GPIO);
 
-    //object_property_add_const_link(OBJECT(&s->gpio), "sdbus-sdhci",
-    //                               OBJECT(&s->sdhci.sdbus));
-    //object_property_add_const_link(OBJECT(&s->gpio), "sdbus-sdhost",
+    //object_property_add_const_link(OBJECT(&s->gpio), "sdbus-sdhci1",
+    //                               OBJECT(&s->sdhci1.sdbus));
+    //object_property_add_const_link(OBJECT(&s->gpio), "sdbus-sdhost1",
     //                               OBJECT(&s->sdhost.sdbus));
 
     /* Mphi */
@@ -487,27 +487,27 @@ void bcm_soc_peripherals_common_realize(DeviceState *dev, Error **errp)
      * For the exact details please refer to the Arasan documentation:
      *   SD3.0_Host_AHB_eMMC4.4_Usersguide_ver5.9_jan11_10.pdf
      */
-    #if 0
-    object_property_set_uint(OBJECT(&s->sdhci), "sd-spec-version", 3,
+    #if 1
+    object_property_set_uint(OBJECT(&s->sdhci1), "sd-spec-version", 3,
                              &error_abort);
                             
-   object_property_set_uint(OBJECT(&s->sdhci), "maxcurr",
+   object_property_set_uint(OBJECT(&s->sdhci1), "maxcurr",
                              0x5, &error_abort);
  
-    object_property_set_uint(OBJECT(&s->sdhci), "capareg",
+    object_property_set_uint(OBJECT(&s->sdhci1), "capareg",
                              BCM2835_SDHC_CAPAREG, &error_abort);
-    object_property_set_bool(OBJECT(&s->sdhci), "pending-insert-quirk", true,
+    object_property_set_bool(OBJECT(&s->sdhci1), "pending-insert-quirk", true,
                              &error_abort);
-    if (!sysbus_realize(SYS_BUS_DEVICE(&s->sdhci), errp)) {
+    if (!sysbus_realize(SYS_BUS_DEVICE(&s->sdhci1), errp)) {
         return;
     }
     #endif
 
-    //memory_region_add_subregion(&s->peri_mr, EMMC1_OFFSET,
-    //            sysbus_mmio_get_region(SYS_BUS_DEVICE(&s->sdhci), 0));
-    //sysbus_connect_irq(SYS_BUS_DEVICE(&s->sdhci), 0,
-    //    qdev_get_gpio_in_named(DEVICE(&s->ic), BCM2835_IC_GPU_IRQ,
-    //                           INTERRUPT_ARASANSDIO));
+    memory_region_add_subregion(&s->peri_mr, EMMC1_OFFSET,
+                sysbus_mmio_get_region(SYS_BUS_DEVICE(&s->sdhci1), 0));
+    sysbus_connect_irq(SYS_BUS_DEVICE(&s->sdhci1), 0,
+        qdev_get_gpio_in_named(DEVICE(&s->ic), BCM2835_IC_GPU_IRQ,
+                               INTERRUPT_ARASANSDIO));
 
     /* SDHOST */
     if (!sysbus_realize(SYS_BUS_DEVICE(&s->sdhost), errp)) {

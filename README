@@ -83,6 +83,22 @@ aarch64-softmmu/qemu-system-aarch64  \
 
 This repository contains raspi4b support
 
+Note that there is a serious hack to attach sd card
+You add a sd card with -drive id=sdcard 
+and this is due to an error with the muxing of the sd card in the raspi4b
+
+https://forums.raspberrypi.com/viewtopic.php?t=308089
+
+This is mainly to get the sd card to work with the QNX operating system 
+
+qemu-system-aarch64   -M raspi4b   -kernel ifs-rpi4-C70.bin.v1    
+ -append "startup-bcm2711-rpi4 -vvv -D pl011-3" 
+  -dtb rpi-4-b.dtb   -cpu cortex-a72  -m  2G -smp 4  
+  -drive id=sdcard,if=none,format=raw,file=sd.img    
+  -d unimp   -trace "sd*"  -trace file=trace_output.log -nic user,model=bcmgenet,hostfwd=tcp::5555-:22 
+     -serial null   -serial  stdio 
+
+
 
 QEMU provides models of the following Raspberry Pi Boards:
 | Machine      | Core          | Number of Cores | RAM     |
